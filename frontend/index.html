@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GuidanceGenie – Find Your Path</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #5b46ff;
+      --primary-dark: #4331d4;
+      --bg: #050816;
+      --accent: #22c55e;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 0% 0%, #1d4ed8 0, transparent 55%),
+        radial-gradient(circle at 100% 100%, #22c55e 0, transparent 55%),
+        var(--bg);
+      color: #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1080px;
+      display: grid;
+      grid-template-columns: minmax(0,1.2fr) minmax(0,1.6fr);
+      gap: 24px;
+      backdrop-filter: blur(18px);
+      background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(17,24,39,0.98));
+      border-radius: 22px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+      border: 1px solid rgba(148,163,184,0.25);
+      overflow: hidden;
+    }
+
+    /* LEFT HERO */
+    .hero {
+      padding: 32px 28px;
+      border-right: 1px solid rgba(55,65,81,0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(15,118,110,0.18);
+      color: #a5f3fc;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      width: fit-content;
+    }
+
+    .hero-tag span.dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 12px #22c55e;
+    }
+
+    .hero h1 {
+      margin: 18px 0 8px;
+      font-size: 2.2rem;
+      line-height: 1.1;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg,#a855f7,#22c55e);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .hero p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 320px;
+    }
+
+    .stats {
+      margin-top: 24px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: rgba(15,23,42,0.9);
+      border-radius: 14px;
+      padding: 10px 12px;
+      border: 1px solid rgba(55,65,81,0.9);
+      font-size: 0.75rem;
+      flex: 1 1 100px;
+      text-align: center;
+    }
+
+    .stat strong {
+      display:block;
+      font-size:1rem;
+    }
+
+    .steps-legend {
+      margin-top: 24px;
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .pill-row {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.75rem;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(31,41,55,0.9);
+      border: 1px solid rgba(75,85,99,0.9);
+    }
+
+    .footer-note {
+      margin-top: 30px;
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    /* RIGHT PANEL */
+    .panel {
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .panel h2 {
+      font-size: 1.8rem;
+      margin-bottom: 12px;
+    }
+
+    .panel p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .input {
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: #111827;
+    }
+
+    .panel button {
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.2s ease;
+      width: fit-content;
+    }
+
+    .panel button:hover {
+      background: var(--primary-dark);
+    }
+
+    /* RESULTS */
+    .results-title {
+      margin-top: 32px;
+      font-size: 1.4rem;
+    }
+
+    #output {
+      width: 100%;
+      max-width: 1080px;
+      margin-top: 12px;
+    }
+
+    .card {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(55,65,81,0.9);
+    }
+
+    .card h3 {
+      margin: 0 0 6px;
+      color: #e5e7eb;
+    }
+
+    .card p {
+      margin: 0 0 6px;
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    .card a {
+      color: #60a5fa;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 900px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .hero {
+        border-right: none;
+        border-bottom: 1px solid rgba(55,65,81,0.7);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+    <!-- LEFT SECTION -->
+    <div class="hero">
+      <div>
+        <div class="hero-tag">
+          <span class="dot"></span>
+          Smart Career Guidance
+        </div>
+
+        <h1>Welcome to <span>GuidanceGenie</span></h1>
+
+        <p>
+          Your personalized career companion to discover skills, paths, and opportunities.
+        </p>
+
+        <div class="stats">
+          <div class="stat"><strong>20+</strong> Career Paths</div>
+          <div class="stat"><strong>100+</strong> Skills</div>
+          <div class="stat"><strong>AI</strong> Powered</div>
+        </div>
+
+        <div class="steps-legend">How it works:</div>
+
+        <div class="pill-row">
+          <div class="pill">Answer</div>
+          <div class="pill">Analyze</div>
+          <div class="pill">Match</div>
+          <div class="pill">Guide</div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        © 2025 GuidanceGenie. All rights reserved.
+      </div>
+    </div>
+
+    <!-- RIGHT SECTION -->
+    <div class="panel">
+      <h2>Get Started</h2>
+      <p>
+        Enter your details to begin your personalized career recommendation journey.
+      </p>
+
+      <input id="email" type="email" class="input" placeholder="Enter email" />
+      <input id="skills" type="text" class="input" placeholder="Enter skills (comma separated)" />
+      <input id="interests" type="text" class="input" placeholder="Enter interests (comma separated)" />
+
+      <button id="startBtn">Start Assessment</button>
+    </div>
+  </div>
+
+  <h1 class="results-title">Recommended Careers</h1>
+  <div id="output"></div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const emailInput = document.getElementById('email');
+    const skillsInput = document.getElementById('skills');
+    const interestsInput = document.getElementById('interests');
+    const output = document.getElementById('output');
+
+    startBtn.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      const skills = skillsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      const interests = interestsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+
+      if (!email || !skills.length || !interests.length) {
+        alert('Please fill email, skills and interests.');
+        return;
+      }
+
+      output.innerHTML = '<p>Loading recommendations...</p>';
+
+      try {
+        const res = await fetch('http://localhost:5000/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, skills, interests })
+        });
+
+        if (!res.ok) {
+          throw new Error('Server error: ' + res.status);
+        }
+
+        const data = await res.json();
+
+        if (!data.length) {
+          output.innerHTML = '<p>No matching careers found. Try different skills/interests.</p>';
+          return;
+        }
+
+        localStorage.setItem('careerResult', JSON.stringify(data));
+
+        output.innerHTML = '';
+        data.slice(0, 5).forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'card';
+
+          const resourcesHtml = Array.isArray(item.resources)
+            ? item.resources.map(r =>
+                `<a href="https://${r}" target="_blank" rel="noopener noreferrer">${r}</a>`
+              ).join(' | ')
+            : '';
+
+          card.innerHTML = `
+            <h3>${item.career}</h3>
+            <p>${item.description || ''}</p>
+            <p><strong>Match score:</strong> ${item.score}</p>
+            <p><strong>Salary range:</strong> ${item.salary || 'N/A'}</p>
+            <p><strong>Education:</strong> ${item.education || 'N/A'}</p>
+            <p><strong>Key skills:</strong> ${Array.isArray(item.skills) ? item.skills.join(', ') : ''}</p>
+            ${resourcesHtml ? `<p><strong>Resources:</strong> ${resourcesHtml}</p>` : ''}
+          `;
+          output.appendChild(card);
+        });
+      } catch (err) {
+        console.error(err);
+        output.innerHTML = `<p style="color:#f87171;">Error: ${err.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>

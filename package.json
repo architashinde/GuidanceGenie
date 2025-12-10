@@ -1,0 +1,23 @@
+{
+"name": "guidancegenie",
+"version": "1.0.0",
+"description": "Rule-based Career Guidance System",
+"main": "backend/server.js",
+"scripts": {
+"start": "node backend/server.js",
+"dev": "nodemon backend/server.js"
+},
+"keywords": [],
+"author": "",
+"license": "MIT",
+"dependencies": {
+  "cors": "^2.8.5",
+  "express": "^4.18.2",
+  "body-parser": "^1.20.2",
+  "dotenv": "^16.0.3",
+  "mongoose": "^9.0.0"
+},
+"devDependencies": {
+"nodemon": "^2.0.22"
+}
+}

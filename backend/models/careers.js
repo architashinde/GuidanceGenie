@@ -1,0 +1,31 @@
+// careers.js
+// A small rule-based career database. Each entry contains matching interests and skills.
+
+
+const careers = [
+{ id: "software-engineer", name: "Software Engineer", interests: ["technology"], skills: ["coding","programming","algorithms","data structures","git"], description: "Builds software applications and systems.", resources: ["www.freecodecamp.org","www.coursera.org","www.udemy.com"], salary: "3-12 LPA", education: "B.E./B.Tech CS/IT" },
+{ id: "web-developer", name: "Web Developer", interests: ["technology","creative"], skills: ["html","css","javascript","react","responsive design"], description: "Builds websites and web apps.", resources: ["www.freecodecamp.org","www.udemy.com","www.codecademy.com"], salary: "2.5-8 LPA", education: "Diploma/B.Tech" },
+{ id: "data-scientist", name: "Data Scientist", interests: ["technology","science","business"], skills: ["python","statistics","machine learning","data analysis","sql"], description: "Analyzes data to build models.", resources: ["www.coursera.org","www.kaggle.com","www.datacamp.com"], salary: "4-15 LPA", education: "B.Tech/BSc" },
+{ id: "ui-ux-designer", name: "UI/UX Designer", interests: ["creative"], skills: ["design","figma","user research","prototyping","visual design"], description: "Designs digital product experiences.", resources: ["www.coursera.org","www.udemy.com","www.interaction-design.org"], salary: "2.5-8 LPA", education: "Design degree/diploma" },
+{ id: "business-analyst", name: "Business Analyst", interests: ["business"], skills: ["excel","sql","communication","analysis"], description: "Analyzes business processes.", resources: ["www.coursera.org","www.udemy.com"], salary: "3-10 LPA", education: "BBA/BCom/BTech" },
+{ id: "graphic-designer", name: "Graphic Designer", interests: ["creative"], skills: ["photoshop","illustrator","visual design","typography"], description: "Creates graphics and branding.", resources: ["www.behance.net","www.udemy.com"], salary: "2-6 LPA", education: "Design diploma" },
+{ id: "nurse", name: "Nurse", interests: ["healthcare"], skills: ["patient care","communication","first aid","empathy"], description: "Provides medical support.", resources: ["www.nursingworld.org"], salary: "2-6 LPA", education: "BSc Nursing" },
+
+
+{ id: "cybersecurity-analyst", name: "Cybersecurity Analyst", interests: ["technology"], skills: ["networking","linux","security","penetration testing","monitoring"], description: "Protects systems from cyber threats.", resources: ["www.tryhackme.com","www.hackthebox.com"], salary: "4-12 LPA", education: "B.Tech IT/CS" },
+{ id: "cloud-engineer", name: "Cloud Engineer", interests: ["technology"], skills: ["aws","azure","gcp","linux","networking"], description: "Builds cloud infrastructures.", resources: ["aws.amazon.com/training","www.coursera.org"], salary: "5-14 LPA", education: "B.Tech IT/CS"},
+{ id: "ai-engineer", name: "AI Engineer", interests: ["technology","science"], skills: ["python","ml","deep learning","data structures"], description: "Builds AI models and systems.", resources: ["www.coursera.org","www.udacity.com"], salary: "6-20 LPA", education: "B.Tech CS/AI" },
+{ id: "devops-engineer", name: "DevOps Engineer", interests: ["technology"], skills: ["docker","kubernetes","ci/cd","linux","git"], description: "Automates deployment pipelines.", resources: ["www.katacoda.com","www.udemy.com"], salary: "5-18 LPA", education: "B.Tech CS/IT" },
+{ id: "database-admin", name: "Database Administrator", interests: ["technology"], skills: ["sql","oracle","postgresql","backup","tuning"], description: "Manages enterprise databases.", resources: ["www.oracle.com","www.postgresql.org/docs"], salary: "4-12 LPA", education: "B.Tech/BSc IT" },
+{ id: "network-engineer", name: "Network Engineer", interests: ["technology"], skills: ["networking","routers","switching","tcp/ip"], description: "Maintains network infrastructure.", resources: ["www.cisco.com","www.udemy.com"], salary: "3-10 LPA", education: "B.Tech EXTC/IT" },
+{ id: "embedded-engineer", name: "Embedded Systems Engineer", interests: ["technology","science"], skills: ["c","c++","microcontrollers","rtos","electronics"], description: "Builds embedded hardware+software.", resources: ["www.nesoacademy.org","www.coursera.org"], salary: "3-12 LPA", education: "B.E. EXTC/EEE" },
+{ id: "digital-marketer", name: "Digital Marketer", interests: ["business","creative"], skills: ["seo","content writing","ads","analytics"], description: "Manages online marketing.", resources: ["www.hubspot.com","www.semrush.com"], salary: "2-8 LPA", education: "Any degree" },
+{ id: "project-manager", name: "Project Manager", interests: ["business"], skills: ["leadership","planning","communication","scheduling"], description: "Manages teams and timelines.", resources: ["www.pmi.org","www.coursera.org"], salary: "6-20 LPA", education: "B.Tech/BBA/MBA" },
+{ id: "hr-specialist", name: "HR Specialist", interests: ["business"], skills: ["people management","communication","recruitment"], description: "Manages hiring and employees.", resources: ["www.linkedin.com/learning"], salary: "2-7 LPA", education: "BBA/BCom/MBA" },
+{ id: "psychologist", name: "Psychologist", interests: ["science","healthcare"], skills: ["counseling","empathy","analysis"], description: "Helps individuals with mental health.", resources: ["www.apa.org","www.coursera.org"], salary: "3-10 LPA", education: "BA/BSc Psychology" },
+{ id: "teacher", name: "Teacher/Educator", interests: ["creative","science","business"], skills: ["communication","presentation","subject knowledge"], description: "Teaches students in schools/colleges.", resources: ["www.coursera.org","www.udemy.com"], salary: "2-6 LPA", education: "B.Ed/M.Ed" },
+{ id: "entrepreneur", name: "Entrepreneur", interests: ["business","creative"], skills: ["leadership","risk-taking","communication","planning"], description: "Builds and runs businesses.", resources: ["www.ycombinator.com","www.startupschool.org"], salary: "Varies", education: "None specific" }
+];
+
+
+module.exports = careers;
