@@ -66,3 +66,10 @@ The app will be available at `http://localhost:5000`.
 - Admin panel to manage career data
 - Optional ML-based ranking model on top of the current rule-based core
 
+## Screenshots
+
+###  Home Page
+![Home Page](https://raw.githubusercontent.com/architashinde/GuidanceGenie/main/home.png)
+
+###  Recommendations Page
+![Recommendations](https://raw.githubusercontent.com/architashinde/GuidanceGenie/main/recommendations.png)
