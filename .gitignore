@@ -14,3 +14,7 @@ pnpm-debug.log*
 .DS_Store
 dist/
 build/
+
+data/*
+!data/.gitkeep
+*.log

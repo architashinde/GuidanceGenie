@@ -1,0 +1,88 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+<section class="home-grid">
+  <div>
+    <p class="eyebrow">Career guidance · <%= groups.reduce((n, g) => n + g.domains.length, 0) %> domains</p>
+    <h1>A straight reading of what you could do next.</h1>
+    <p class="lede">Answer a questionnaire about where you are, what you can already do, and how you want the work to feel. GuidanceGenie ranks roles from a catalogue, then lists the skills you have, the ones you do not, and places to learn them. Create an account if you want to open that result again later.</p>
+    <div class="actions">
+      <a class="button" href="/assess">Start the questionnaire</a>
+      <a class="quiet" href="/domains">Browse the catalogue</a>
+    </div>
+    <p class="fine">About ten minutes. You can look at the matches before you decide to keep an account.</p>
+  </div>
+  <aside class="example">
+    <p class="eyebrow">Worked example</p>
+    <p>Not a testimonial. These answers are fixed, so you can see the sheet move. The same profile is saved on the demo account.</p>
+    <dl class="mini">
+      <div><dt>Where</dt><dd><%= sampleAnswers.stage %></dd></div>
+      <div><dt>Domains</dt><dd><%= sampleAnswers.domains.map(d => d.name).join(', ') %></dd></div>
+      <div><dt>Workday</dt><dd><%= sampleAnswers.focus %></dd></div>
+      <div><dt>Already can</dt><dd><%= sampleAnswers.skills.map(s => s.label).join(', ') %></dd></div>
+    </dl>
+    <p class="example-score"><span><%= sample.score %></span>/100 · <%= sample.role.title %></p>
+    <p><%= sample.reasons[1] %></p>
+    <a href="/how">How the points are assigned</a>
+  </aside>
+</section>
+<section class="block">
+  <h2>What the questionnaire actually asks</h2>
+  <ol class="ask-list">
+    <li>
+      <span>01</span>
+      <div>
+        <h3>Where you are</h3>
+        <p>Still in a degree, just finished, or already working. A final-year student and someone three years into a job should not get the same “you could start next month” line.</p>
+      </div>
+    </li>
+    <li>
+      <span>02</span>
+      <div>
+        <h3>One to three domains</h3>
+        <p>Tech and business fields, named as hiring markets rather than moods. Three is the cap, so the result is not a list of everything.</p>
+      </div>
+    </li>
+    <li>
+      <span>03</span>
+      <div>
+        <h3>The shape of a workday</h3>
+        <p>Making, analysing, talking, or keeping a plan alive. Plus whether you want a small team, a large organisation, or clients in the room.</p>
+      </div>
+    </li>
+    <li>
+      <span>04</span>
+      <div>
+        <h3>Skills you could use this month</h3>
+        <p>Not skills you have heard of. The gaps on the result page are whatever the role needs that you left unticked.</p>
+      </div>
+    </li>
+    <li>
+      <span>05</span>
+      <div>
+        <h3>What the next two years are for</h3>
+        <p>Pay, a craft, stability, work people can see, or being useful to someone directly. And whether you will self-teach, take a certificate, or consider another degree.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+<section class="block">
+  <div class="section-head">
+    <h2>The catalogue</h2>
+    <a href="/domains">Open the full list</a>
+  </div>
+  <p class="lede thin">Each field has at least one role, with a normal week, the skills that role leans on, and learning links. Salary lines are indicative for India and labelled as such.</p>
+  <% groups.forEach(function (group) { %>
+    <h3 class="group-label"><%= group.name %></h3>
+    <ul class="toc">
+      <% group.domains.forEach(function (domain) { %>
+        <li>
+          <a href="/domains/<%= domain.id %>">
+            <span class="num"><%= domain.number %></span>
+            <span><strong><%= domain.name %></strong><%= domain.blurb %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  <% }) %>
+</section>
+<%- include('partials/footer') %>

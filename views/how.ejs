@@ -1,0 +1,41 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+<p class="eyebrow">Scoring</p>
+<h1>A sheet, not a model.</h1>
+<div class="prose">
+  <p>GuidanceGenie does not train a model and does not call an outside service when you submit. The server scores every role in the catalogue with the same points. The top of that list is your result. If you are signed in, the answers and the scores are written to your account.</p>
+  <p>A direct domain pick is worth more than any single skill. That is deliberate. If you say you want cybersecurity, a security role stays in the conversation even when your skill list is thin. The gap list is then the useful part of the page. A neighbouring field can still finish above your pick when the skills and the workday fit it better. The result says so when that happens.</p>
+</div>
+<h2>The points</h2>
+<table class="sheet">
+  <thead>
+    <tr><th>Piece</th><th>Points</th><th>How it is earned</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Domain</td><td><%= points.domainDirect %></td><td>Full marks if you picked the role’s field. <%= points.domainAdjacent %> if you picked a neighbour. Zero otherwise.</td></tr>
+    <tr><td>Skills</td><td><%= points.skills %></td><td>Share of the role’s weighted skill list that you ticked. A core skill is worth more than a useful one.</td></tr>
+    <tr><td>Workday</td><td><%= points.focus %></td><td>Your “centre of the day” is one of the centres of that job.</td></tr>
+    <tr><td>Setting</td><td><%= points.setting %></td><td>Small team, large organisation, independent, or client-facing, if the role lives there.</td></tr>
+    <tr><td>Pace</td><td><%= points.pace %></td><td>Full marks on a match. Choosing “a mix” still scores 3 against a role that wanted something sharper.</td></tr>
+    <tr><td>Where you are</td><td><%= points.stage %></td><td>Full marks if this is a reasonable next step from your stage. Otherwise 1, so it is not a ban.</td></tr>
+    <tr><td>Study</td><td><%= points.education %></td><td>Your degree or diploma is a usual door for the role.</td></tr>
+    <tr><td>Priority</td><td><%= points.priority %></td><td>Pay, craft, stability, visible work, or direct usefulness, if the role is a fair place to look for it.</td></tr>
+  </tbody>
+</table>
+<p class="fine">The maximum raw total is <%= maxRaw %>, because domain points do not stack. The score you see is that total scaled to 100. 70 and above is a strong match. 50 to 69 is plausible. Below 50 is a stretch.</p>
+<h2>The same example as the home page</h2>
+<p>A bachelor’s student who picked data analytics and business analysis, likes taking evidence apart, and already has SQL, spreadsheets, statistics, writing, and a bit of research.</p>
+<p class="example-score"><span><%= sample.score %></span>/100 · <%= sample.role.title %></p>
+<table class="sheet">
+  <thead><tr><th>Piece</th><th>Points</th></tr></thead>
+  <tbody>
+    <% sample.sheet.forEach(function (row) { %>
+      <tr>
+        <td><%= row.label %></td>
+        <td><%= row.got %> / <%= row.max %></td>
+      </tr>
+    <% }) %>
+  </tbody>
+</table>
+<p class="fine"><%= sample.rawLabel %> raw points, scaled. <%= sample.reasons[1] %></p>
+<%- include('partials/footer') %>

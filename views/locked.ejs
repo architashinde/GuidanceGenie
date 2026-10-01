@@ -1,0 +1,10 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+<h1>This assessment is on an account.</h1>
+<% if (signedIn) { %>
+  <p>You are signed in as <%= user.email %>. This result was saved by a different account.</p>
+<% } else { %>
+  <p>Sign in with the account that saved it.</p>
+  <p><a class="button" href="/login">Sign in</a></p>
+<% } %>
+<%- include('partials/footer') %>

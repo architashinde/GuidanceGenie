@@ -1,0 +1,23 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+<p class="eyebrow">Catalogue</p>
+<h1><%= groups.reduce(function (n, group) { return n + group.domains.length }, 0) %> fields, <%= roleCount %> roles.</h1>
+<p class="lede">Read a field before you take the questionnaire if you want a name for what you are already circling. The questionnaire is what turns a pick into a ranked list.</p>
+<% groups.forEach(function (group) { %>
+  <h2 class="group-label"><%= group.name %></h2>
+  <ul class="toc">
+    <% group.domains.forEach(function (domain) { %>
+      <li>
+        <a href="/domains/<%= domain.id %>">
+          <span class="num"><%= domain.number %></span>
+          <span>
+            <strong><%= domain.name %></strong>
+            <%= domain.blurb %>
+            <em><%= domain.roleCount %> <%= domain.roleCount === 1 ? 'role' : 'roles' %></em>
+          </span>
+        </a>
+      </li>
+    <% }) %>
+  </ul>
+<% }) %>
+<%- include('partials/footer') %>

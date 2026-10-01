@@ -1,0 +1,25 @@
+<%- include('partials/head') %>
+<%- include('partials/header') %>
+<p class="eyebrow">Account</p>
+<h1><%= user.name.split(' ')[0] %>, your saved assessments.</h1>
+<% if (!rows.length) { %>
+  <p class="lede">Nothing saved yet. Finish the questionnaire while you are signed in, or finish it first and then create the account in the same browser.</p>
+  <p><a class="button" href="/assess">Start the questionnaire</a></p>
+<% } else { %>
+  <p class="lede thin">Each row is one submission. Opening it shows the answers, the points, and the learning links from that day. Taking it again adds another row. It does not overwrite this one.</p>
+  <ul class="saved-list">
+    <% rows.forEach(function (row) { %>
+      <li>
+        <div>
+          <p class="eyebrow"><%= row.when %></p>
+          <h2><a href="/results/<%= row.id %>"><%= row.topTitle %></a></h2>
+          <p><%= row.topScore %>/100 · <%= row.domains.join(', ') %></p>
+        </div>
+        <form method="post" action="/saved/<%= row.id %>/delete" data-confirm="Delete this assessment? The answers and scores go with it.">
+          <button type="submit" class="text-button">Delete</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+<% } %>
+<%- include('partials/footer') %>
