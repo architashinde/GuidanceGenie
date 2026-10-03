@@ -18,3 +18,9 @@ build/
 data/*
 !data/.gitkeep
 *.log
+
+.env.example
+
+
+
+

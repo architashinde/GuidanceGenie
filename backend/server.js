@@ -5,16 +5,18 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const express = require('express');
 const session = require('express-session');
 
+const MongoStore = require('connect-mongo');
+
 const catalog = require('./catalog');
 const labels = require('./labels');
 const engine = require('./engine');
 const dbApi = require('./db');
-const { SqliteSessionStore } = require('./sessionStore');
 const present = require('./present');
+const pages = require('./pages');
 
-const db = dbApi.createDatabase();
 const app = express();
 const PORT = Number(process.env.PORT) || 4721;
+const MONGO_URI = process.env.MONGO_URI || dbApi.DEFAULT_URI;
 
 if (!process.env.SESSION_SECRET) {
   console.log(
@@ -22,9 +24,11 @@ if (!process.env.SESSION_SECRET) {
   );
 }
 
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '..', 'views'));
 app.disable('x-powered-by');
+
+function html(res, status, name, data) {
+  res.status(status).type('html').send(pages[name](data));
+}
 
 app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 app.use(express.json({ limit: '64kb' }));
@@ -32,7 +36,11 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use(
   session({
-    store: new SqliteSessionStore(db),
+    store: MongoStore.create({
+      mongoUrl: MONGO_URI,
+      collectionName: 'sessions',
+      ttl: 14 * 24 * 60 * 60
+    }),
     name: 'gg.sid',
     secret: process.env.SESSION_SECRET || 'dev-only-secret-change-before-sharing',
     resave: false,
@@ -65,12 +73,18 @@ function flash(req, message) {
 }
 
 function publicUser(user) {
-  return { id: Number(user.id), name: user.name, email: user.email };
+  return { id: String(user.id), name: user.name, email: user.email };
 }
 
 function canView(req, row) {
   if (row.user_id == null) return true;
-  return Boolean(req.session.user && Number(req.session.user.id) === Number(row.user_id));
+  return Boolean(req.session.user && String(req.session.user.id) === String(row.user_id));
+}
+
+function asyncRoute(handler) {
+  return (req, res, next) => {
+    Promise.resolve(handler(req, res, next)).catch(next);
+  };
 }
 
 const ID_RE = /^[A-Za-z0-9_-]{8,40}$/;
@@ -87,38 +101,29 @@ function signIn(req, user, callback) {
   req.session.regenerate((error) => {
     if (error) return callback(error);
     req.session.user = publicUser(user);
-    if (pending.length) {
-      dbApi.claimAssessments(db, user.id, pending);
-      req.session.pendingAssessments = pending;
-    }
-    req.session.save((saveError) => callback(saveError, pending));
+    const finish = (error) => {
+      if (error) return callback(error);
+      if (pending.length) req.session.pendingAssessments = pending;
+      req.session.save((saveError) => callback(saveError, pending));
+    };
+    if (!pending.length) return finish();
+    dbApi.claimAssessments(user.id, pending).then(() => finish()).catch(finish);
   });
 }
 
 app.get('/', (req, res) => {
-  const ranked = engine.rankRoles(engine.examples.analyst);
-  const sample = present.presentScored(ranked[0], engine.examples.analyst.study);
-  res.render(
+  html(res, 200,
     'home',
     view(req, {
       page: 'home',
       title: 'GuidanceGenie',
-      groups: catalog.groupedDomains(),
-      sample,
-      sampleAnswers: present.presentAssessment({
-        id: 'sample',
-        created_at: new Date().toISOString(),
-        answers_json: JSON.stringify(engine.examples.analyst),
-        results_json: JSON.stringify(ranked),
-        top_role_title: sample.role.title,
-        top_score: sample.score
-      }).answers
+      groups: catalog.groupedDomains()
     })
   );
 });
 
 app.get('/domains', (req, res) => {
-  res.render(
+  html(res, 200,
     'domains',
     view(req, {
       page: 'domains',
@@ -131,9 +136,9 @@ app.get('/domains', (req, res) => {
 
 app.get('/domains/:id', (req, res) => {
   const domain = catalog.domainById(req.params.id);
-  if (!domain) return res.status(404).render('404', view(req, { title: 'Not found · GuidanceGenie' }));
+  if (!domain) return html(res, 404,'notFound', view(req, { title: 'Not found · GuidanceGenie' }));
   const neighbours = catalog.neighborIds(domain.id).map((id) => catalog.domainById(id));
-  res.render(
+  html(res, 200,
     'domain',
     view(req, {
       page: 'domains',
@@ -145,9 +150,9 @@ app.get('/domains/:id', (req, res) => {
   );
 });
 
-app.get('/roles/:id', (req, res) => {
+app.get('/roles/:id', asyncRoute(async (req, res) => {
   const role = catalog.roleById(req.params.id);
-  if (!role) return res.status(404).render('404', view(req, { title: 'Not found · GuidanceGenie' }));
+  if (!role) return html(res, 404,'notFound', view(req, { title: 'Not found · GuidanceGenie' }));
   const domain = catalog.domainById(role.domainId);
   const others = catalog.rolesInDomain(domain.id).filter((item) => item.id !== role.id);
   const neighbours = catalog.neighborIds(domain.id).map((id) => catalog.domainById(id));
@@ -160,15 +165,15 @@ app.get('/roles/:id', (req, res) => {
   let mine = null;
   const from = typeof req.query.from === 'string' ? req.query.from : '';
   if (ID_RE.test(from)) {
-    const row = dbApi.getAssessment(db, from);
+    const row = await dbApi.getAssessment(from);
     if (row && canView(req, row)) {
       const answers = JSON.parse(row.answers_json);
       const hit = JSON.parse(row.results_json).find((item) => item.roleId === role.id);
-      if (hit) mine = present.presentScored(hit, answers.study);
+      if (hit) mine = present.presentScored(hit);
     }
   }
 
-  res.render(
+  html(res, 200,
     'role',
     view(req, {
       page: 'domains',
@@ -178,20 +183,21 @@ app.get('/roles/:id', (req, res) => {
       others,
       neighbours,
       skills,
+      courses: present.splitCourses(role.resources),
       mine,
       from: mine ? from : ''
     })
   );
-});
+}));
 
 app.get('/how', (req, res) => {
   const ranked = engine.rankRoles(engine.examples.analyst);
-  const sample = present.presentScored(ranked[0], 'self-learn');
-  res.render(
+  const sample = present.presentScored(ranked[0]);
+  html(res, 200,
     'how',
     view(req, {
       page: 'how',
-      title: 'How scoring works · GuidanceGenie',
+      title: 'Recommendation logic · GuidanceGenie',
       points: engine.POINTS,
       maxRaw: engine.MAX_RAW,
       sample
@@ -201,7 +207,7 @@ app.get('/how', (req, res) => {
 
 app.get('/assess', (req, res) => {
   const preset = typeof req.query.domain === 'string' ? req.query.domain : '';
-  res.render(
+  html(res, 200,
     'assess',
     view(req, {
       page: 'assess',
@@ -211,8 +217,6 @@ app.get('/assess', (req, res) => {
       focuses: labels.focuses,
       settings: labels.settings,
       paces: labels.paces,
-      priorities: labels.priorities,
-      studies: labels.studies,
       groups: catalog.groupedDomains(),
       skillGroups: catalog.skillGroups(),
       preset: catalog.domainById(preset) ? preset : ''
@@ -220,27 +224,27 @@ app.get('/assess', (req, res) => {
   );
 });
 
-app.post('/api/assessments', (req, res) => {
+app.post('/api/assessments', asyncRoute(async (req, res) => {
   const parsed = engine.normalizeAnswers(req.body);
   if (parsed.error) return res.status(400).json({ error: parsed.error });
 
   const id = crypto.randomBytes(12).toString('base64url');
   const results = engine.rankRoles(parsed.answers);
   const userId = req.session.user ? req.session.user.id : null;
-  dbApi.createAssessment(db, { id, userId, answers: parsed.answers, results });
+  await dbApi.createAssessment({ id, userId, answers: parsed.answers, results });
   if (!userId) rememberAssessment(req, id);
 
   res.status(201).json({ id });
-});
+}));
 
-app.get('/results/:id', (req, res) => {
+app.get('/results/:id', asyncRoute(async (req, res) => {
   if (!ID_RE.test(req.params.id)) {
-    return res.status(404).render('404', view(req, { title: 'Not found · GuidanceGenie' }));
+    return html(res, 404,'notFound', view(req, { title: 'Not found · GuidanceGenie' }));
   }
-  const row = dbApi.getAssessment(db, req.params.id);
-  if (!row) return res.status(404).render('404', view(req, { title: 'Not found · GuidanceGenie' }));
+  const row = await dbApi.getAssessment(req.params.id);
+  if (!row) return html(res, 404,'notFound', view(req, { title: 'Not found · GuidanceGenie' }));
   if (!canView(req, row)) {
-    return res.status(403).render(
+    return html(res, 403,
       'locked',
       view(req, {
         title: 'Saved assessment · GuidanceGenie',
@@ -249,7 +253,7 @@ app.get('/results/:id', (req, res) => {
     );
   }
   const assessment = present.presentAssessment(row);
-  res.render(
+  html(res, 200,
     'results',
     view(req, {
       page: 'assess',
@@ -258,14 +262,14 @@ app.get('/results/:id', (req, res) => {
       saved: Boolean(row.user_id)
     })
   );
-});
+}));
 
 app.get('/register', (req, res) => {
   if (req.session.user) return res.redirect('/saved');
-  res.render('register', view(req, { page: 'account', title: 'Create an account · GuidanceGenie' }));
+  html(res, 200,'register', view(req, { page: 'account', title: 'Create an account · GuidanceGenie' }));
 });
 
-app.post('/register', (req, res) => {
+app.post('/register', asyncRoute(async (req, res) => {
   const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
@@ -287,14 +291,14 @@ app.post('/register', (req, res) => {
     flash(req, 'The two passwords do not match.');
     return res.redirect('/register');
   }
-  if (dbApi.findUserByEmail(db, email)) {
+  if (await dbApi.findUserByEmail(email)) {
     flash(req, 'That email is already registered. Sign in instead.');
     return res.redirect('/login');
   }
 
   let user;
   try {
-    user = dbApi.createUser(db, { name, email, password });
+    user = await dbApi.createUser({ name, email, password });
   } catch (error) {
     if (String(error.message).includes('UNIQUE')) {
       flash(req, 'That email is already registered. Sign in instead.');
@@ -308,17 +312,17 @@ app.post('/register', (req, res) => {
     const latest = pending[pending.length - 1];
     res.redirect(latest ? `/results/${latest}` : '/saved');
   });
-});
+}));
 
 app.get('/login', (req, res) => {
   if (req.session.user) return res.redirect('/saved');
-  res.render('login', view(req, { page: 'account', title: 'Sign in · GuidanceGenie' }));
+  html(res, 200,'login', view(req, { page: 'account', title: 'Sign in · GuidanceGenie' }));
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', asyncRoute(async (req, res) => {
   const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
   const password = typeof req.body.password === 'string' ? req.body.password : '';
-  const user = dbApi.findUserByEmail(db, email);
+  const user = await dbApi.findUserByEmail(email);
 
   if (!user || !dbApi.verifyPassword(user, password)) {
     flash(req, 'That email and password do not match.');
@@ -330,7 +334,7 @@ app.post('/login', (req, res) => {
     const latest = pending[pending.length - 1];
     res.redirect(latest ? `/results/${latest}` : '/saved');
   });
-});
+}));
 
 app.post('/logout', (req, res) => {
   req.session.destroy(() => {
@@ -339,13 +343,13 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.get('/saved', (req, res) => {
+app.get('/saved', asyncRoute(async (req, res) => {
   if (!req.session.user) {
     flash(req, 'Sign in to see assessments saved on your account.');
     return res.redirect('/login');
   }
-  const rows = dbApi.listAssessments(db, req.session.user.id).map(present.presentSavedRow);
-  res.render(
+  const rows = (await dbApi.listAssessments(req.session.user.id)).map(present.presentSavedRow);
+  html(res, 200,
     'saved',
     view(req, {
       page: 'saved',
@@ -353,15 +357,15 @@ app.get('/saved', (req, res) => {
       rows
     })
   );
-});
+}));
 
-app.post('/saved/:id/delete', (req, res) => {
+app.post('/saved/:id/delete', asyncRoute(async (req, res) => {
   if (!req.session.user) return res.redirect('/login');
   if (!ID_RE.test(req.params.id)) return res.redirect('/saved');
-  const removed = dbApi.deleteAssessment(db, req.params.id, req.session.user.id);
+  const removed = await dbApi.deleteAssessment(req.params.id, req.session.user.id);
   flash(req, removed ? 'Assessment deleted.' : 'That assessment is not on this account.');
   res.redirect('/saved');
-});
+}));
 
 app.get('/health', (req, res) => {
   res.json({
@@ -372,13 +376,13 @@ app.get('/health', (req, res) => {
 });
 
 app.use((req, res) => {
-  res.status(404).render('404', view(req, { title: 'Not found · GuidanceGenie' }));
+  html(res, 404,'notFound', view(req, { title: 'Not found · GuidanceGenie' }));
 });
 
 app.use((error, req, res, next) => {
   console.error(error);
   if (res.headersSent) return next(error);
-  res.status(500).render(
+  html(res, 500,
     'error',
     view(req, {
       title: 'Something went wrong · GuidanceGenie',
@@ -388,8 +392,16 @@ app.use((error, req, res, next) => {
 });
 
 if (require.main === module) {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`GuidanceGenie is running at http://127.0.0.1:${PORT}`);
+  dbApi.connect(MONGO_URI).then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`GuidanceGenie is running at http://127.0.0.1:${PORT}`);
+    });
+  }).catch((error) => {
+    const where = MONGO_URI.replace(/\/\/([^/@]+)@/, '//***@');
+    console.error(`Could not connect to MongoDB at ${where}.`);
+    console.error(error.message);
+    console.error('Start MongoDB, then run npm start again. If the database is not on this machine, set MONGO_URI in .env.');
+    process.exit(1);
   });
 }
 

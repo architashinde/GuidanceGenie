@@ -1,159 +1,215 @@
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { DatabaseSync } = require('node:sqlite');
 const { examples, rankRoles } = require('./engine');
 const { roleById } = require('./catalog');
 
-const DEFAULT_PATH = path.join(__dirname, '..', 'data', 'guidancegenie.db');
+const DEFAULT_URI = 'mongodb://127.0.0.1:27017/guidancegenie';
 
-function createDatabase(file = process.env.GG_DB || DEFAULT_PATH) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const db = new DatabaseSync(file);
-  db.exec(`
-    PRAGMA foreign_keys = ON;
-    PRAGMA journal_mode = WAL;
+const userSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password_hash: { type: String, required: true },
+    created_at: { type: String, required: true }
+  },
+  { collection: 'users' }
+);
 
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-      password_hash TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
+const assessmentSchema = new mongoose.Schema(
+  {
+    _id: { type: String },
+    user_id: { type: mongoose.Schema.Types.ObjectId, default: null },
+    created_at: { type: String, required: true },
+    answers_json: { type: String, required: true },
+    results_json: { type: String, required: true },
+    top_role_id: { type: String, required: true },
+    top_role_title: { type: String, required: true },
+    top_score: { type: Number, required: true }
+  },
+  { collection: 'assessments' }
+);
 
-    CREATE TABLE IF NOT EXISTS sessions (
-      sid TEXT PRIMARY KEY,
-      data TEXT NOT NULL,
-      expires_at INTEGER NOT NULL
-    );
+assessmentSchema.index({ user_id: 1, created_at: -1 });
 
-    CREATE TABLE IF NOT EXISTS assessments (
-      id TEXT PRIMARY KEY,
-      user_id INTEGER,
-      created_at TEXT NOT NULL,
-      answers_json TEXT NOT NULL,
-      results_json TEXT NOT NULL,
-      top_role_id TEXT NOT NULL,
-      top_role_title TEXT NOT NULL,
-      top_score INTEGER NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    );
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+const Assessment = mongoose.models.Assessment || mongoose.model('Assessment', assessmentSchema);
 
-    CREATE INDEX IF NOT EXISTS idx_assessments_user ON assessments(user_id, created_at);
-  `);
-
-  seedDemo(db);
-  return db;
+function uriFromEnv() {
+  return process.env.MONGO_URI || DEFAULT_URI;
 }
 
-function seedDemo(db) {
+function userRow(doc, withHash) {
+  if (!doc) return null;
+  const row = {
+    id: String(doc._id),
+    name: doc.name,
+    email: doc.email,
+    created_at: doc.created_at
+  };
+  if (withHash) row.password_hash = doc.password_hash;
+  return row;
+}
+
+function assessmentRow(doc) {
+  if (!doc) return null;
+  return {
+    id: doc._id,
+    user_id: doc.user_id ? String(doc.user_id) : null,
+    created_at: doc.created_at,
+    answers_json: doc.answers_json,
+    results_json: doc.results_json,
+    top_role_id: doc.top_role_id,
+    top_role_title: doc.top_role_title,
+    top_score: doc.top_score
+  };
+}
+
+function isDuplicate(error) {
+  return Boolean(error && (error.code === 11000 || error.code === 'UNIQUE'));
+}
+
+async function connect(uri = uriFromEnv()) {
+  if (mongoose.connection.readyState === 1) return mongoose.connection;
+  await mongoose.connect(uri);
+  await seedDemo();
+  return mongoose.connection;
+}
+
+async function disconnect() {
+  if (mongoose.connection.readyState === 0) return;
+  await mongoose.disconnect();
+}
+
+async function wipe() {
+  await User.deleteMany({});
+  await Assessment.deleteMany({});
+}
+
+async function seedDemo() {
   const email = 'meera.kulkarni@example.com';
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = await User.findOne({ email });
   if (existing) return;
 
   const hash = bcrypt.hashSync('campus-2026', 10);
-  const inserted = db
-    .prepare('INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)')
-    .run('Meera Kulkarni', email, hash, new Date().toISOString());
-  const userId = Number(inserted.lastInsertRowid);
+  let user;
+  try {
+    user = await User.create({
+      name: 'Meera Kulkarni',
+      email,
+      password_hash: hash,
+      created_at: new Date().toISOString()
+    });
+  } catch (error) {
+    if (isDuplicate(error)) return;
+    throw error;
+  }
 
   const samples = [
     { id: 'demo-meera-analyst', answers: examples.analyst, daysAgo: 12 },
     { id: 'demo-meera-frontend', answers: examples.frontend, daysAgo: 2 }
   ];
 
-  const insert = db.prepare(`
-    INSERT INTO assessments (
-      id, user_id, created_at, answers_json, results_json, top_role_id, top_role_title, top_score
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   for (const sample of samples) {
     const results = rankRoles(sample.answers);
     const top = results[0];
     const created = new Date(Date.now() - sample.daysAgo * 24 * 60 * 60 * 1000).toISOString();
-    insert.run(
-      sample.id,
-      userId,
-      created,
-      JSON.stringify(sample.answers),
-      JSON.stringify(results),
-      top.roleId,
-      roleById(top.roleId).title,
-      top.score
-    );
+    await Assessment.create({
+      _id: sample.id,
+      user_id: user._id,
+      created_at: created,
+      answers_json: JSON.stringify(sample.answers),
+      results_json: JSON.stringify(results),
+      top_role_id: top.roleId,
+      top_role_title: roleById(top.roleId).title,
+      top_score: top.score
+    });
   }
 }
 
-function createUser(db, { name, email, password }) {
+async function createUser({ name, email, password }) {
   const hash = bcrypt.hashSync(password, 10);
-  const result = db
-    .prepare('INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)')
-    .run(name, email, hash, new Date().toISOString());
-  return findUserById(db, Number(result.lastInsertRowid));
+  try {
+    const doc = await User.create({
+      name,
+      email,
+      password_hash: hash,
+      created_at: new Date().toISOString()
+    });
+    return userRow(doc, false);
+  } catch (error) {
+    if (isDuplicate(error)) {
+      const wrapped = new Error('UNIQUE constraint failed: users.email');
+      wrapped.code = 'UNIQUE';
+      throw wrapped;
+    }
+    throw error;
+  }
 }
 
-function findUserByEmail(db, email) {
-  return db.prepare('SELECT * FROM users WHERE email = ?').get(email) || null;
+async function findUserByEmail(email) {
+  const doc = await User.findOne({ email: String(email || '').toLowerCase() });
+  return userRow(doc, true);
 }
 
-function findUserById(db, id) {
-  const row = db.prepare('SELECT id, name, email, created_at FROM users WHERE id = ?').get(id);
-  return row || null;
+async function findUserById(id) {
+  if (!mongoose.isValidObjectId(id)) return null;
+  const doc = await User.findById(id).select('name email created_at');
+  return userRow(doc, false);
 }
 
 function verifyPassword(user, password) {
+  if (!user || !user.password_hash) return false;
   return bcrypt.compareSync(password, user.password_hash);
 }
 
-function createAssessment(db, { id, userId, answers, results }) {
+async function createAssessment({ id, userId, answers, results }) {
   const top = results[0];
   const title = roleById(top.roleId).title;
-  db.prepare(`
-    INSERT INTO assessments (
-      id, user_id, created_at, answers_json, results_json, top_role_id, top_role_title, top_score
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    id,
-    userId || null,
-    new Date().toISOString(),
-    JSON.stringify(answers),
-    JSON.stringify(results),
-    top.roleId,
-    title,
-    top.score
+  await Assessment.create({
+    _id: id,
+    user_id: userId || null,
+    created_at: new Date().toISOString(),
+    answers_json: JSON.stringify(answers),
+    results_json: JSON.stringify(results),
+    top_role_id: top.roleId,
+    top_role_title: title,
+    top_score: top.score
+  });
+  return getAssessment(id);
+}
+
+async function getAssessment(id) {
+  const doc = await Assessment.findById(id);
+  return assessmentRow(doc);
+}
+
+async function listAssessments(userId) {
+  if (!mongoose.isValidObjectId(userId)) return [];
+  const docs = await Assessment.find({ user_id: userId }).sort({ created_at: -1 });
+  return docs.map(assessmentRow);
+}
+
+async function deleteAssessment(id, userId) {
+  if (!mongoose.isValidObjectId(userId)) return false;
+  const result = await Assessment.deleteOne({ _id: id, user_id: userId });
+  return result.deletedCount > 0;
+}
+
+async function claimAssessments(userId, ids) {
+  if (!ids || !ids.length) return;
+  if (!mongoose.isValidObjectId(userId)) return;
+  await Assessment.updateMany(
+    { _id: { $in: ids }, user_id: null },
+    { $set: { user_id: userId } }
   );
-  return getAssessment(db, id);
-}
-
-function getAssessment(db, id) {
-  return db.prepare('SELECT * FROM assessments WHERE id = ?').get(id) || null;
-}
-
-function listAssessments(db, userId) {
-  return db
-    .prepare('SELECT * FROM assessments WHERE user_id = ? ORDER BY created_at DESC')
-    .all(userId);
-}
-
-function deleteAssessment(db, id, userId) {
-  const result = db.prepare('DELETE FROM assessments WHERE id = ? AND user_id = ?').run(id, userId);
-  return result.changes > 0;
-}
-
-function claimAssessments(db, userId, ids) {
-  const update = db.prepare(
-    'UPDATE assessments SET user_id = ? WHERE id = ? AND user_id IS NULL'
-  );
-  for (const id of ids) {
-    update.run(userId, id);
-  }
 }
 
 module.exports = {
-  DEFAULT_PATH,
-  createDatabase,
+  DEFAULT_URI,
+  connect,
+  disconnect,
+  wipe,
+  seedDemo,
   createUser,
   findUserByEmail,
   findUserById,
@@ -162,5 +218,6 @@ module.exports = {
   getAssessment,
   listAssessments,
   deleteAssessment,
-  claimAssessments
+  claimAssessments,
+  isDuplicate
 };

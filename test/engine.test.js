@@ -1,11 +1,10 @@
 const assert = require('assert');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 
 const catalog = require('../backend/catalog');
 const engine = require('../backend/engine');
 const dbApi = require('../backend/db');
+
+const TEST_URI = process.env.GG_TEST_MONGO_URI || 'mongodb://127.0.0.1:27017/guidancegenie_test';
 
 const domains = catalog.domains;
 assert.ok(domains.length >= 20, 'expected at least 20 domains');
@@ -35,45 +34,64 @@ assert.ok(emptySkills.error);
 const ok = engine.normalizeAnswers(engine.examples.analyst);
 assert.deepStrictEqual(ok.answers.domains, engine.examples.analyst.domains);
 
-const file = path.join(os.tmpdir(), 'guidancegenie-test-' + process.pid + '.db');
-for (const suffix of ['', '-wal', '-shm']) {
-  fs.rmSync(file + suffix, { force: true });
+async function checkAccounts() {
+  try {
+    await dbApi.connect(TEST_URI);
+  } catch (error) {
+    console.error('MongoDB is not running, so the account checks could not run.');
+    console.error('Start MongoDB on 127.0.0.1:27017, then run npm test again.');
+    console.error(error.message);
+    process.exit(1);
+  }
+
+  await dbApi.wipe();
+  await dbApi.seedDemo();
+
+  const demo = await dbApi.findUserByEmail('meera.kulkarni@example.com');
+  assert.ok(demo, 'demo user should be seeded');
+  assert.ok(dbApi.verifyPassword(demo, 'campus-2026'));
+  assert.ok(!dbApi.verifyPassword(demo, 'wrong-password'));
+  const saved = await dbApi.listAssessments(demo.id);
+  assert.strictEqual(saved.length, 2);
+  assert.ok(saved.some((row) => row.top_role_id === 'data-analyst'));
+  assert.ok(saved.some((row) => row.top_role_id === 'frontend-developer'));
+
+  const created = await dbApi.createUser({
+    name: 'Asha Rao',
+    email: 'asha.rao@example.com',
+    password: 'campus-2026'
+  });
+  assert.strictEqual(created.email, 'asha.rao@example.com');
+  await dbApi.claimAssessments(created.id, ['demo-meera-analyst']);
+  const stillDemo = await dbApi.getAssessment('demo-meera-analyst');
+  assert.notStrictEqual(String(stillDemo.user_id), String(created.id), 'claim must not steal an owned assessment');
+
+  const guestId = 'guest-result-test';
+  await dbApi.createAssessment({
+    id: guestId,
+    userId: null,
+    answers: engine.examples.analyst,
+    results: analyst
+  });
+  await dbApi.claimAssessments(created.id, [guestId]);
+  assert.strictEqual(String((await dbApi.getAssessment(guestId)).user_id), String(created.id));
+  assert.ok(await dbApi.deleteAssessment(guestId, created.id));
+  assert.strictEqual(await dbApi.getAssessment(guestId), null);
+
+  await dbApi.wipe();
+  await dbApi.disconnect();
 }
-const db = dbApi.createDatabase(file);
-const demo = dbApi.findUserByEmail(db, 'meera.kulkarni@example.com');
-assert.ok(demo, 'demo user should be seeded');
-assert.ok(dbApi.verifyPassword(demo, 'campus-2026'));
-assert.ok(!dbApi.verifyPassword(demo, 'wrong-password'));
-const saved = dbApi.listAssessments(db, Number(demo.id));
-assert.strictEqual(saved.length, 2);
-assert.ok(saved.some((row) => row.top_role_id === 'data-analyst'));
-assert.ok(saved.some((row) => row.top_role_id === 'frontend-developer'));
 
-const created = dbApi.createUser(db, {
-  name: 'Asha Rao',
-  email: 'asha.rao@example.com',
-  password: 'campus-2026'
-});
-assert.strictEqual(created.email, 'asha.rao@example.com');
-dbApi.claimAssessments(db, created.id, ['demo-meera-analyst']);
-const stillDemo = dbApi.getAssessment(db, 'demo-meera-analyst');
-assert.notStrictEqual(Number(stillDemo.user_id), created.id, 'claim must not steal an owned assessment');
-
-const guestId = 'guest-result-test';
-dbApi.createAssessment(db, {
-  id: guestId,
-  userId: null,
-  answers: engine.examples.analyst,
-  results: analyst
-});
-dbApi.claimAssessments(db, created.id, [guestId]);
-assert.strictEqual(Number(dbApi.getAssessment(db, guestId).user_id), created.id);
-assert.ok(dbApi.deleteAssessment(db, guestId, created.id));
-assert.strictEqual(dbApi.getAssessment(db, guestId), null);
-
-db.close();
-for (const suffix of ['', '-wal', '-shm']) {
-  fs.rmSync(file + suffix, { force: true });
-}
-
-console.log('engine and account checks passed');
+checkAccounts()
+  .then(() => {
+    console.log('engine and account checks passed');
+  })
+  .catch(async (error) => {
+    console.error(error);
+    try {
+      await dbApi.disconnect();
+    } catch (disconnectError) {
+      console.error(disconnectError);
+    }
+    process.exit(1);
+  });

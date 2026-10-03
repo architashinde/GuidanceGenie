@@ -9,8 +9,7 @@ const PART_LABELS = [
   ['setting', 'Setting'],
   ['pace', 'Pace'],
   ['stage', 'Where you are now'],
-  ['education', 'Study background'],
-  ['priority', 'What you want next']
+  ['education', 'Study background']
 ];
 
 const BANDS = {
@@ -30,18 +29,24 @@ function weightWord(weight) {
   return 'Useful';
 }
 
-function sortResources(resources, study) {
-  const copy = resources.slice();
-  if (study === 'self-learn') {
-    copy.sort((a, b) => Number(a.cost !== 'Free') - Number(b.cost !== 'Free'));
-  }
-  return copy;
+function isPaidCourse(cost) {
+  return typeof cost === 'string' && /^paid\b/i.test(cost);
 }
 
-function presentScored(scored, study) {
+function splitCourses(resources) {
+  const free = [];
+  const paid = [];
+  for (const item of resources || []) {
+    if (isPaidCourse(item.cost)) paid.push(item);
+    else free.push(item);
+  }
+  return { free, paid };
+}
+
+function presentScored(scored) {
   const role = catalog.roleById(scored.roleId);
   const domain = catalog.domainById(role.domainId);
-  const sheet = PART_LABELS.map(([key, label]) => ({
+  const sheet = PART_LABELS.filter(([key]) => scored.parts[key]).map(([key, label]) => ({
     key,
     label,
     got: labels.formatPoints(scored.parts[key].got),
@@ -63,7 +68,7 @@ function presentScored(scored, study) {
       const weight = skillWeight(role, id);
       return { ...skill, weight, weightWord: weightWord(weight) };
     }),
-    resources: sortResources(role.resources, study)
+    courses: splitCourses(role.resources)
   };
 }
 
@@ -77,15 +82,15 @@ function presentAnswers(answers) {
     setting: labels.labelOf(labels.settings, answers.setting),
     pace: labels.labelOf(labels.paces, answers.pace),
     skills: answers.skills.map((id) => catalog.skillById(id)).filter(Boolean),
-    priority: labels.labelOf(labels.priorities, answers.priority),
-    study: labels.labelOf(labels.studies, answers.study),
-    studyLine: studyLine(answers.study)
+    priority: answers.priority ? labels.labelOf(labels.priorities, answers.priority) : '',
+    study: answers.study ? labels.labelOf(labels.studies, answers.study) : '',
+    studyLine: studyLine()
   };
 }
 
 function presentAssessment(row) {
   const answers = JSON.parse(row.answers_json);
-  const results = JSON.parse(row.results_json).map((item) => presentScored(item, answers.study));
+  const results = JSON.parse(row.results_json).map((item) => presentScored(item));
   return {
     id: row.id,
     createdAt: row.created_at,
@@ -116,6 +121,7 @@ module.exports = {
   BANDS,
   weightWord,
   skillWeight,
+  splitCourses,
   presentScored,
   presentAssessment,
   presentSavedRow

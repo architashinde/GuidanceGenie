@@ -36,8 +36,6 @@
       setting: checked('setting') ? checked('setting').value : '',
       pace: checked('pace') ? checked('pace').value : '',
       skills: checkedAll('skills'),
-      priority: checked('priority') ? checked('priority').value : '',
-      study: checked('study') ? checked('study').value : '',
       note: form.elements.note.value.trim()
     };
   }
@@ -64,9 +62,6 @@
     if (step === 3 && data.note.length > 500) {
       return 'Keep the note under 500 characters.';
     }
-    if (step === 4 && (!data.priority || !data.study)) {
-      return 'Choose what the next two years are for, and how you will learn.';
-    }
     return '';
   }
 
@@ -86,8 +81,6 @@
       ['Setting', choiceText(checked('setting'))],
       ['Pace', choiceText(checked('pace'))],
       ['Skills', Array.from(form.querySelectorAll('input[name="skills"]:checked')).map(choiceText).join(', ')],
-      ['Next two years', choiceText(checked('priority'))],
-      ['Learning', choiceText(checked('study'))],
       ['Note', data.note || 'None']
     ];
     document.getElementById('review').innerHTML = rows.map(function (row) {
@@ -127,7 +120,7 @@
   }
 
   function applyAnswers(answers) {
-    ['stage', 'education', 'focus', 'setting', 'pace', 'priority', 'study'].forEach(function (name) {
+    ['stage', 'education', 'focus', 'setting', 'pace'].forEach(function (name) {
       if (!answers[name]) return;
       const el = form.querySelector('input[name="' + name + '"][value="' + CSS.escape(answers[name]) + '"]');
       if (el) el.checked = true;
@@ -191,7 +184,7 @@
     }
 
     nextBtn.disabled = true;
-    nextBtn.textContent = 'Scoring the catalogue…';
+    nextBtn.textContent = 'Ranking roles…';
     showError('');
     try {
       const response = await fetch('/api/assessments', {

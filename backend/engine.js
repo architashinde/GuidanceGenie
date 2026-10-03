@@ -1,5 +1,5 @@
 const catalog = require('./catalog');
-const { focuses, settings, paces, priorities, stages, education, studies, labelOf } = require('./labels');
+const { focuses, settings, paces, stages, education, labelOf } = require('./labels');
 
 const POINTS = {
   domainDirect: 40,
@@ -9,8 +9,7 @@ const POINTS = {
   setting: 6,
   pace: 6,
   stage: 5,
-  education: 3,
-  priority: 6
+  education: 3
 };
 
 const MAX_RAW =
@@ -20,17 +19,14 @@ const MAX_RAW =
   POINTS.setting +
   POINTS.pace +
   POINTS.stage +
-  POINTS.education +
-  POINTS.priority;
+  POINTS.education;
 
 const ID_LISTS = {
   stage: stages,
   education,
   focus: focuses,
   setting: settings,
-  pace: paces,
-  priority: priorities,
-  study: studies
+  pace: paces
 };
 
 const examples = {
@@ -81,8 +77,6 @@ function normalizeAnswers(body) {
     setting: typeof body.setting === 'string' ? body.setting : '',
     pace: typeof body.pace === 'string' ? body.pace : '',
     skills: Array.isArray(body.skills) ? unique(body.skills.filter((id) => typeof id === 'string')) : [],
-    priority: typeof body.priority === 'string' ? body.priority : '',
-    study: typeof body.study === 'string' ? body.study : '',
     note: typeof body.note === 'string' ? body.note.trim() : ''
   };
 
@@ -103,8 +97,6 @@ function normalizeAnswers(body) {
   if (answers.skills.some((id) => !catalog.skillById(id))) {
     return { error: 'One of those skills is not in the list.' };
   }
-  if (!isId(priorities, answers.priority)) return { error: 'Choose what matters in the next two years.' };
-  if (!isId(studies, answers.study)) return { error: 'Choose how you are willing to learn.' };
   if (answers.note.length > 500) return { error: 'Keep the note under 500 characters.' };
 
   return { answers };
@@ -199,8 +191,7 @@ function scoreRole(role, answers) {
     setting: { got: role.settings.includes(answers.setting) ? POINTS.setting : 0, max: POINTS.setting },
     pace: { got: pacePoints(role, answers.pace), max: POINTS.pace },
     stage: { got: role.stages.includes(answers.stage) ? POINTS.stage : 1, max: POINTS.stage },
-    education: { got: role.education.includes(answers.education) ? POINTS.education : 0, max: POINTS.education },
-    priority: { got: role.priorities.includes(answers.priority) ? POINTS.priority : 0, max: POINTS.priority }
+    education: { got: role.education.includes(answers.education) ? POINTS.education : 0, max: POINTS.education }
   };
 
   const raw = Object.values(parts).reduce((sum, part) => sum + part.got, 0);
@@ -225,14 +216,8 @@ function rankRoles(answers) {
     .sort((a, b) => b.score - a.score || a.roleId.localeCompare(b.roleId));
 }
 
-function studyLine(study) {
-  if (study === 'self-learn') {
-    return 'You said you will teach yourself. Free material is listed first on each role.';
-  }
-  if (study === 'cert') {
-    return 'You said a certificate is realistic. Paid courses are marked so you can tell them from the free ones.';
-  }
-  return 'You said another diploma or degree is on the table. The role brief says whether a specific degree is actually the usual door.';
+function studyLine() {
+  return 'Courses for the skills this role uses are listed under the match, free and paid separately.';
 }
 
 function weakestPart(parts) {
@@ -243,8 +228,7 @@ function weakestPart(parts) {
     setting: 'setting',
     pace: 'pace',
     stage: 'where you are now',
-    education: 'study background',
-    priority: 'what you want from the next two years'
+    education: 'study background'
   };
   return Object.entries(parts)
     .map(([key, part]) => ({ key, label: labels[key], ratio: part.max ? part.got / part.max : 0, ...part }))
@@ -264,4 +248,3 @@ module.exports = {
   labelOf,
   ID_LISTS
 };
-
