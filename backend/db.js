@@ -24,7 +24,9 @@ const assessmentSchema = new mongoose.Schema(
     results_json: { type: String, required: true },
     top_role_id: { type: String, required: true },
     top_role_title: { type: String, required: true },
-    top_score: { type: Number, required: true }
+    top_score: { type: Number, required: true },
+    suggestion: { type: String, default: '' },
+    messages_json: { type: String, default: '' }
   },
   { collection: 'assessments' }
 );
@@ -60,7 +62,9 @@ function assessmentRow(doc) {
     results_json: doc.results_json,
     top_role_id: doc.top_role_id,
     top_role_title: doc.top_role_title,
-    top_score: doc.top_score
+    top_score: doc.top_score,
+    suggestion: doc.suggestion || '',
+    messages_json: doc.messages_json || ''
   };
 }
 
@@ -162,9 +166,25 @@ function verifyPassword(user, password) {
   return bcrypt.compareSync(password, user.password_hash);
 }
 
-async function createAssessment({ id, userId, answers, results }) {
-  const top = results[0];
-  const title = roleById(top.roleId).title;
+function summarize(results) {
+  if (Array.isArray(results)) {
+    const top = results[0];
+    return {
+      roleId: top.roleId,
+      title: roleById(top.roleId).title,
+      score: top.score
+    };
+  }
+  const top = (results.recommendations && results.recommendations[0]) || {};
+  return {
+    roleId: top.roleId || 'outside-catalogue',
+    title: top.title || 'Career suggestion',
+    score: Number.isFinite(Number(top.score)) ? Number(top.score) : 0
+  };
+}
+
+async function createAssessment({ id, userId, answers, results, suggestion, messages }) {
+  const top = summarize(results);
   await Assessment.create({
     _id: id,
     user_id: userId || null,
@@ -172,10 +192,17 @@ async function createAssessment({ id, userId, answers, results }) {
     answers_json: JSON.stringify(answers),
     results_json: JSON.stringify(results),
     top_role_id: top.roleId,
-    top_role_title: title,
-    top_score: top.score
+    top_role_title: top.title,
+    top_score: top.score,
+    suggestion: suggestion || '',
+    messages_json: messages && messages.length ? JSON.stringify(messages) : ''
   });
   return getAssessment(id);
+}
+
+async function saveSuggestion(id, suggestion) {
+  if (!suggestion) return;
+  await Assessment.updateOne({ _id: id }, { $set: { suggestion } });
 }
 
 async function getAssessment(id) {
@@ -215,6 +242,7 @@ module.exports = {
   findUserById,
   verifyPassword,
   createAssessment,
+  saveSuggestion,
   getAssessment,
   listAssessments,
   deleteAssessment,

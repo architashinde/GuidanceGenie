@@ -32,17 +32,22 @@ function layout(data, body) {
 </head>
 <body>
   <a class="skip" href="#content">Skip to content</a>
-  <header class="top">
-    <div class="top-inner">
+<header class="top">
+  <div class="top-inner">
+    <div class="top-left">
+      <button type="button" class="back-arrow" id="go-back" aria-label="Back to the previous page">←</button>
       <a class="mark" href="/">GuidanceGenie</a>
-      <nav aria-label="Primary">
-        <a${on('domains')} href="/domains">Catalogue</a>
-        <a${on('assess')} href="/assess">Questionnaire</a>
-        <a${on('how')} href="/how">How it ranks</a>
-        ${account}
-      </nav>
     </div>
-  </header>
+    <nav aria-label="Primary">
+      <a${on('domains')} href="/domains">Catalogue</a>
+      <a${on('assess')} href="/assess">Questionnaire</a>
+      <a${on('chat')} href="/chat">Chat</a>
+      <a${on('how')} href="/how">How it ranks</a>
+      ${account}
+    </nav>
+    <a class="home-btn" href="/">Home</a>
+  </div>
+</header>
   <main id="content" class="layout">
     ${flash}
     ${body}

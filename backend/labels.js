@@ -84,6 +84,67 @@ const studies = [
   { id: 'degree', label: 'I am open to another diploma or degree' }
 ];
 
+const educationLevels = [
+  { id: 'class-10', label: 'Class 10', hint: 'Finished, or you are in it now.' },
+  { id: 'class-12', label: 'Class 12', hint: 'Higher secondary, or you are in it now.' },
+  { id: 'diploma', label: 'Diploma', hint: 'Polytechnic or another diploma after school.' },
+  { id: 'degree', label: 'Degree', hint: 'A bachelor’s, finished or in progress.' },
+  { id: 'postgraduate', label: 'Postgraduate', hint: 'A master’s, MBA, M.Tech, or another degree after the first.' },
+  { id: 'working', label: 'Already working', hint: 'A job is the main thing, whatever the last certificate was.' }
+];
+
+const subjects = [
+  { id: 'maths', label: 'Mathematics' },
+  { id: 'physics', label: 'Physics' },
+  { id: 'chemistry', label: 'Chemistry' },
+  { id: 'biology', label: 'Biology' },
+  { id: 'computer-science', label: 'Computer science' },
+  { id: 'statistics', label: 'Statistics' },
+  { id: 'accountancy', label: 'Accountancy' },
+  { id: 'business-studies', label: 'Business studies' },
+  { id: 'economics', label: 'Economics' },
+  { id: 'commerce', label: 'Commerce' },
+  { id: 'english', label: 'English' },
+  { id: 'design', label: 'Design or drawing' },
+  { id: 'engineering', label: 'An engineering subject' },
+  { id: 'history', label: 'History' },
+  { id: 'political-science', label: 'Political science' },
+  { id: 'psychology', label: 'Psychology' }
+];
+
+const interests = [
+  { id: 'software', label: 'Building software', domains: ['software-engineering', 'quality-assurance'] },
+  { id: 'web', label: 'Websites and apps', domains: ['web-development', 'mobile-development'] },
+  { id: 'data', label: 'Data and numbers', domains: ['data-analytics', 'data-engineering', 'business-analysis'] },
+  { id: 'security', label: 'Keeping systems safe', domains: ['cybersecurity'] },
+  { id: 'cloud', label: 'Cloud and how software is run', domains: ['cloud-infrastructure', 'devops'] },
+  { id: 'design', label: 'How something looks and works', domains: ['product-design'] },
+  { id: 'product', label: 'Deciding what gets built', domains: ['product-management'] },
+  { id: 'ml', label: 'Machine learning as a job', domains: ['machine-learning'] },
+  { id: 'marketing', label: 'Reaching an audience', domains: ['digital-marketing', 'content'] },
+  { id: 'finance', label: 'Money and accounts', domains: ['finance'] },
+  { id: 'people', label: 'Hiring and teams', domains: ['human-resources'] },
+  { id: 'sales', label: 'Clients and selling', domains: ['sales', 'consulting'] },
+  { id: 'writing', label: 'Writing and content', domains: ['content'] },
+  { id: 'business', label: 'Starting or running something', domains: ['entrepreneurship', 'operations', 'project-management'] },
+  { id: 'support', label: 'Helping someone who is stuck', domains: ['it-support'] }
+];
+
+const streams = [
+  { id: 'science', label: 'Science' },
+  { id: 'commerce', label: 'Commerce' },
+  { id: 'arts', label: 'Arts' },
+  { id: 'engineering', label: 'Engineering' },
+  { id: 'none', label: 'No stream or branch' }
+];
+
+const aims = [
+  { id: 'job', label: 'Start a job', hint: 'The next step is work, including a first job.' },
+  { id: 'study', label: 'Study further', hint: 'A course, diploma, or degree comes before the job.' },
+  { id: 'switch', label: 'Change the work I already do', hint: 'You have a role. You want a different one.' },
+  { id: 'unsure', label: 'Not sure yet', hint: 'Show the closest options and what each one needs.' }
+];
+
 function labelOf(list, id) {
   const found = list.find((item) => item.id === id);
   return found ? found.label : id;
@@ -111,6 +172,11 @@ module.exports = {
   paces,
   priorities,
   studies,
+  educationLevels,
+  streams,
+  subjects,
+  interests,
+  aims,
   labelOf,
   formatPoints,
   formatWhen

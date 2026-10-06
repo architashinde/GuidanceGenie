@@ -34,7 +34,63 @@ assert.ok(emptySkills.error);
 const ok = engine.normalizeAnswers(engine.examples.analyst);
 assert.deepStrictEqual(ok.answers.domains, engine.examples.analyst.domains);
 
+const recommend = require('../backend/recommend');
+const agent = require('../backend/agent');
+const rejected = recommend.normalize({ education: 'class-12' });
+assert.ok(rejected.error);
+const accepted = recommend.normalize({
+  education: 'class-12',
+  subjects: ['computer-science'],
+  subjectsOther: 'a python module',
+  interestsOther: 'websites',
+  skillsOther: 'I built a page',
+  aim: 'job'
+});
+assert.strictEqual(accepted.profile.education, 'class-12');
+const local = recommend.localRecommendations(accepted.profile);
+assert.ok(local.recommendations.length >= 1);
+assert.ok(local.recommendations[0].courses[0].url.startsWith('http'));
+const sheet = recommend.sheetFor(accepted.profile);
+assert.ok(sheet.length >= 20);
+assert.ok(sheet[0].parts.domain);
+const outside = recommend.enrich({
+  title: 'Wildlife photographer',
+  why: 'They named this interest.',
+  skills: ['Editing'],
+  courses: [
+    { title: 'NPTEL', url: 'https://nptel.ac.in/courses/106/106106', cost: 'Free', note: 'A public course.' },
+    { title: 'Unknown site', url: 'https://random-career.example/course', cost: 'Free', note: 'Not a known public site.' }
+  ]
+});
+assert.ok(outside.courses.some((course) => course.url.includes('nptel.ac.in')));
+assert.ok(!outside.courses.some((course) => course.url.includes('example')));
+const matched = recommend.enrich({
+  title: 'Frontend developer',
+  why: 'They want websites.',
+  skills: ['HTML'],
+  courses: [{ title: 'Unknown site', url: 'https://random-career.example/course', cost: 'Free', note: 'Dropped.' }]
+});
+assert.ok(matched.courses.some((course) => course.url.includes('web.dev')));
+assert.ok(!matched.courses.some((course) => course.url.includes('example')));
+
 async function checkAccounts() {
+  const suggest = require('../backend/suggest');
+  if (!process.env.GEMINI_API_KEY) {
+    let chat = await agent.turn(agent.start(), 'I am in class 12');
+    chat = await agent.turn(chat.state, 'science');
+    chat = await agent.turn(chat.state, 'computer science and mathematics');
+    chat = await agent.turn(chat.state, 'I want websites');
+    chat = await agent.turn(chat.state, 'I can write');
+    chat = await agent.turn(chat.state, 'I want a job');
+    assert.ok(chat.recommendations && chat.recommendations.length >= 1, 'chat should reach careers');
+    const missing = await suggest.suggestCareer({
+      answers: engine.examples.analyst,
+      results: analyst
+    });
+    assert.strictEqual(missing.text, '');
+    assert.strictEqual(missing.error, '');
+  }
+
   try {
     await dbApi.connect(TEST_URI);
   } catch (error) {

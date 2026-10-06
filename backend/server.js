@@ -13,6 +13,8 @@ const engine = require('./engine');
 const dbApi = require('./db');
 const present = require('./present');
 const pages = require('./pages');
+const recommend = require('./recommend');
+const agent = require('./agent');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 4721;
@@ -168,7 +170,9 @@ app.get('/roles/:id', asyncRoute(async (req, res) => {
     const row = await dbApi.getAssessment(from);
     if (row && canView(req, row)) {
       const answers = JSON.parse(row.answers_json);
-      const hit = JSON.parse(row.results_json).find((item) => item.roleId === role.id);
+      const stored = JSON.parse(row.results_json);
+      const list = Array.isArray(stored) ? stored : stored.scored || [];
+      const hit = list.find((item) => item.roleId === role.id);
       if (hit) mine = present.presentScored(hit);
     }
   }
@@ -206,32 +210,72 @@ app.get('/how', (req, res) => {
 });
 
 app.get('/assess', (req, res) => {
-  const preset = typeof req.query.domain === 'string' ? req.query.domain : '';
   html(res, 200,
     'assess',
     view(req, {
       page: 'assess',
       title: 'Questionnaire · GuidanceGenie',
-      stages: labels.stages,
-      education: labels.education,
-      focuses: labels.focuses,
-      settings: labels.settings,
-      paces: labels.paces,
-      groups: catalog.groupedDomains(),
-      skillGroups: catalog.skillGroups(),
-      preset: catalog.domainById(preset) ? preset : ''
+      educationLevels: labels.educationLevels,
+      streams: labels.streams,
+      subjects: labels.subjects,
+      interests: labels.interests,
+      aims: labels.aims,
+      skillGroups: catalog.skillGroups()
     })
   );
 });
 
+app.get('/chat', (req, res) => {
+  if (!req.session.guide) req.session.guide = agent.start();
+  html(res, 200,
+    'chat',
+    view(req, {
+      page: 'chat',
+      title: 'Talk it through · GuidanceGenie',
+      messages: req.session.guide.messages
+    })
+  );
+});
+
+app.post('/api/chat', asyncRoute(async (req, res) => {
+  const text = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+  if (!text || text.length > 1000) return res.status(400).json({ error: 'Write a message, up to 1000 characters.' });
+  if (!req.session.guide) req.session.guide = agent.start();
+  const turn = await agent.turn(req.session.guide, text);
+  req.session.guide = turn.state;
+  if (!turn.recommendations) return res.json({ reply: turn.reply });
+
+  const id = crypto.randomBytes(12).toString('base64url');
+  const userId = req.session.user ? req.session.user.id : null;
+  const sheet = recommend.sheetFor(turn.profile);
+  await dbApi.createAssessment({
+    id,
+    userId,
+    answers: turn.profile,
+    messages: turn.state.messages,
+    results: {
+      source: turn.source || 'gemini',
+      recommendations: turn.recommendations,
+      sheet
+    }
+  });
+  if (!userId) rememberAssessment(req, id);
+  res.json({ reply: turn.reply, assessmentId: id });
+}));
+
 app.post('/api/assessments', asyncRoute(async (req, res) => {
-  const parsed = engine.normalizeAnswers(req.body);
+  const parsed = recommend.normalize(req.body);
   if (parsed.error) return res.status(400).json({ error: parsed.error });
 
   const id = crypto.randomBytes(12).toString('base64url');
-  const results = engine.rankRoles(parsed.answers);
+  const results = await recommend.build(parsed.profile);
   const userId = req.session.user ? req.session.user.id : null;
-  await dbApi.createAssessment({ id, userId, answers: parsed.answers, results });
+  await dbApi.createAssessment({
+    id,
+    userId,
+    answers: parsed.profile,
+    results
+  });
   if (!userId) rememberAssessment(req, id);
 
   res.status(201).json({ id });
@@ -257,7 +301,7 @@ app.get('/results/:id', asyncRoute(async (req, res) => {
     'results',
     view(req, {
       page: 'assess',
-      title: `${assessment.featured.role.title} · your matches`,
+      title: `${assessment.headline} · your matches`,
       assessment,
       saved: Boolean(row.user_id)
     })
