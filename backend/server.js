@@ -57,6 +57,10 @@ app.use(
   })
 );
 
+app.use((req, res, next) => {
+  dbApi.connect(MONGO_URI).then(() => next()).catch(next);
+});
+
 function view(req, extra = {}) {
   const flash = req.session ? req.session.flash || null : null;
   if (req.session && Object.prototype.hasOwnProperty.call(req.session, 'flash')) {
