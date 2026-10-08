@@ -1,3 +1,6 @@
+const labels = require('./labels');
+const catalog = require('./catalog');
+
 function esc(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -24,7 +27,7 @@ function layout(data, body) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${esc(data.title)}</title>
   <meta name="description" content="${esc(data.description)}">
-  <link rel="icon" href="/favicon.ico" type="image/svg+xml">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;1,6..72,500&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -32,36 +35,30 @@ function layout(data, body) {
 </head>
 <body>
   <a class="skip" href="#content">Skip to content</a>
-<header class="top">
-  <div class="top-inner">
-    <div class="top-left">
-      <button type="button" class="back-arrow" id="go-back" aria-label="Back to the previous page">←</button>
-      <a class="mark" href="/">GuidanceGenie</a>
+  <header class="top">
+    <div class="top-inner">
+      <div class="top-left">
+        <button type="button" class="back-arrow" id="go-back" aria-label="Back to the previous page">←</button>
+        <a class="mark" href="/">GuidanceGenie</a>
+      </div>
+      <nav aria-label="Primary">
+        <a${on('domains')} href="/domains">Catalogue</a>
+        <a${on('assess')} href="/assess">Questionnaire</a>
+        <a${on('chat')} href="/chat">Chat</a>
+        <a${on('how')} href="/how">How it ranks</a>
+        ${account}
+      </nav>
+      <a class="home-btn" href="/">Home</a>
     </div>
-    <nav aria-label="Primary">
-      <a${on('domains')} href="/domains">Catalogue</a>
-      <a${on('assess')} href="/assess">Questionnaire</a>
-      <a${on('chat')} href="/chat">Chat</a>
-      <a${on('how')} href="/how">How it ranks</a>
-      ${account}
-    </nav>
-    <a class="home-btn" href="/">Home</a>
-  </div>
-</header>
+  </header>
   <main id="content" class="layout">
     ${flash}
     ${body}
   </main>
   <footer class="foot">
     <div class="foot-inner">
-      <p class="foot-name">GuidanceGenie</p>
-      <p>Career guidance across tech and business, from a short questionnaire to roles, skills, and courses.</p>
-      <nav class="foot-links" aria-label="Footer">
-        <a href="/">Home</a>
-        <a href="/domains">Catalogue</a>
-        <a href="/how">How it ranks</a>
-      </nav>
-      <p>© 2026 GuidanceGenie</p>
+      <p>A questionnaire or a conversation collects your education, subjects, and interests. Careers come back with the skills they need and links to courses. Gemini can name a career that is not in the catalogue and add those course links.</p>
+      <p>Pay lines are indicative ranges for India. They are not offers. Accounts and saved assessments are stored in MongoDB.</p>
     </div>
   </footer>
   <script src="/js/site.js"></script>
@@ -119,42 +116,43 @@ function home(data) {
     data,
     `<section>
   <p class="eyebrow">Career guidance · ${esc(count)} domains</p>
-  <h1>Answer a few questions. See which roles fit.</h1>
-  <p class="lede">Say where you are, which fields you want to look at, and what you can already do. Recommendation logic ranks roles across tech and business against those answers, then lists the skills each role needs and courses for those skills, free and paid. Save an account if you want to open that result again.</p>
+  <h1>Tell it your education and what you actually want to do.</h1>
+  <p class="lede">Use the questionnaire, or talk it through. Both ask about Class 10, Class 12, a diploma, a degree, postgraduate study, or work you already have, then the subjects you studied and the work you want. You get careers, the skills those careers need, and course links. Save an account if you want to open that result again.</p>
   <div class="actions">
     <a class="button" href="/assess">Start the questionnaire</a>
+    <a class="quiet" href="/chat">Talk it through</a>
   </div>
 </section>
 
 <section class="block">
-  <h2>What the questionnaire actually asks</h2>
+  <h2>What you will be asked</h2>
   <ol class="ask-list">
     <li>
       <span>01</span>
       <div>
-        <h3>Where you are</h3>
-        <p>Still in a degree, just finished, or already working. A final-year student and someone three years into a job should not get the same “you could start next month” line.</p>
+        <h3>Last education</h3>
+        <p>Class 10, Class 12, a diploma, a degree, postgraduate study, or already working.</p>
       </div>
     </li>
     <li>
       <span>02</span>
       <div>
-        <h3>One to three domains</h3>
-        <p>Tech and business fields, named as hiring markets rather than moods. Three is the cap, so the result is not a list of everything.</p>
+        <h3>Subjects and courses</h3>
+        <p>Tick the ones you had, and type any the list missed.</p>
       </div>
     </li>
     <li>
       <span>03</span>
       <div>
-        <h3>The shape of a workday</h3>
-        <p>Making, analysing, talking, or keeping a plan alive. Plus whether you want a small team, a large organisation, or clients in the room.</p>
+        <h3>What you actually want</h3>
+        <p>Interests can be from the list or in your own words. The chat will ask again if this part is thin.</p>
       </div>
     </li>
     <li>
       <span>04</span>
       <div>
-        <h3>Skills you could use this month</h3>
-        <p>Not skills you have heard of. The result then names the skills the role still needs, with a free course and a paid course for learning them.</p>
+        <h3>What you can already do, and what you want next</h3>
+        <p>A skill you could use this month, then a job, more study, a switch, or not sure yet.</p>
       </div>
     </li>
   </ol>
@@ -300,7 +298,7 @@ function how(data) {
     `<p class="eyebrow">Recommendation logic</p>
 <h1>A sheet, not a model.</h1>
 <div class="prose">
-  <p>The recommendation logic is this sheet. GuidanceGenie does not train a model and does not call an outside service when you submit. The server scores every role in the catalogue with the same points. The top of that list is your result. If you are signed in, the answers and the scores are written to your account in MongoDB.</p>
+  <p>The catalogue still has a fixed sheet, shown below, so a known role can be checked. The questionnaire and the chat are what you use. They collect education, subjects, interests, and what you want next. Matching careers inside the catalogue use its course links. When <code>GEMINI_API_KEY</code> is set, Gemini can also name a career that is not in the catalogue and add course links for the skills that career needs. Saved results stay in MongoDB.</p>
   <p>A direct domain pick is worth more than any single skill. That is deliberate. If you say you want cybersecurity, a security role stays in the conversation even when your skill list is thin. The gap list is then the useful part of the page. A neighbouring field can still finish above your pick when the skills and the workday fit it better. The result says so when that happens.</p>
 </div>
 
@@ -341,8 +339,12 @@ function how(data) {
   );
 }
 
+function asList(items) {
+  return Array.isArray(items) ? items : [];
+}
+
 function radioChoices(items, name, withHint) {
-  return items
+  return asList(items)
     .map(
       (item) => `<label class="choice">
           <input type="radio" name="${esc(name)}" value="${esc(item.id)}">
@@ -352,79 +354,85 @@ function radioChoices(items, name, withHint) {
     .join('');
 }
 
+function checkChoices(items, name) {
+  return asList(items)
+    .map(
+      (item) => `<label class="choice">
+          <input type="checkbox" name="${esc(name)}" value="${esc(item.id)}">
+          <span>${esc(item.label)}</span>
+        </label>`
+    )
+    .join('');
+}
+
 function assess(data) {
+  const educationLevels = asList(data.educationLevels).length ? data.educationLevels : labels.educationLevels;
+  const streams = asList(data.streams).length ? data.streams : labels.streams;
+  const subjects = asList(data.subjects).length ? data.subjects : labels.subjects;
+  const interests = asList(data.interests).length ? data.interests : labels.interests;
+  const aims = asList(data.aims).length ? data.aims : labels.aims;
+  const skillGroups = asList(data.skillGroups).length ? data.skillGroups : catalog.skillGroups();
   return layout(
     data,
     `<p class="eyebrow">Questionnaire</p>
-<h1>Tell us what is already true.</h1>
-<p class="lede thin">Four short steps, then a review. Tick skills you could use this month, not ones you plan to look up. The result is roles, the skills those roles need, and courses for the gaps.</p>
+<h1>Education, subjects, and what you want.</h1>
+<p class="lede thin">A short form, then careers. Tick what fits and type anything the list misses. Submitting goes straight to recommendations. The points sheet for the catalogue stays on that page.</p>
 
 <noscript>
   <p class="flash">This questionnaire needs JavaScript to move between steps. The catalogue and the role briefs work without it.</p>
 </noscript>
 
-<form id="assess" class="assess" novalidate data-preset="${esc(data.preset)}">
-  <p id="step-label" class="step-label">Step 1 of 6</p>
+<form id="assess" class="assess" novalidate>
+  <p id="step-label" class="step-label">Step 1 of 7</p>
   <p id="form-error" class="form-error" hidden></p>
 
   <section data-step>
-    <h2>Where are you?</h2>
+    <h2>What is the last education you finished or are in?</h2>
     <fieldset>
-      <legend>Study or work</legend>
-      ${radioChoices(data.stages, 'stage', true)}
+      <legend>Education</legend>
+      ${radioChoices(educationLevels, 'education', true)}
     </fieldset>
-    <fieldset>
-      <legend>Highest study, finished or in progress</legend>
-      ${radioChoices(data.education, 'education', false)}
-    </fieldset>
+    <label class="stack" for="current-role">If you are already working, what is the role?</label>
+    <input id="current-role" name="currentRole" maxlength="120" placeholder="Example: store accountant, support engineer">
+    <label class="stack" for="years">Years in that work</label>
+    <input id="years" name="years" inputmode="numeric" maxlength="2" placeholder="Example: 2">
   </section>
 
   <section data-step hidden>
-    <h2>Which fields should we look at?</h2>
-    <p>Pick one, two, or three. A field you do not pick can still appear if it sits next to one you did and your skills fit it.</p>
-    <label class="filter-label" for="domain-filter">Filter the list</label>
-    <input id="domain-filter" type="search" data-filter="domains" placeholder="Try data, design, finance…">
-    <p id="domain-count" class="fine">None selected. Pick 1 to 3.</p>
-    ${data.groups
-      .map(
-        (group) => `<fieldset data-group>
-        <legend>${esc(group.name)}</legend>
-        ${group.domains
-          .map(
-            (domain) => `<label class="choice">
-            <input type="checkbox" name="domains" value="${esc(domain.id)}">
-            <span><strong>${esc(domain.name)}</strong><small>${esc(domain.blurb)}</small></span>
-          </label>`
-          )
-          .join('')}
-      </fieldset>`
-      )
-      .join('')}
+    <h2>What stream or branch was that?</h2>
+    <p>Skip the spirit of this if you did not have one. Science, Commerce, Arts, and Engineering cover most school and college paths. Type a branch the list misses.</p>
+    <fieldset>
+      <legend>Stream or branch</legend>
+      ${radioChoices(streams, 'stream', false)}
+    </fieldset>
+    <label class="stack" for="stream-other">Or type the branch</label>
+    <input id="stream-other" name="streamOther" maxlength="200" placeholder="Example: mechanical, B.Com, PCB">
   </section>
 
   <section data-step hidden>
-    <h2>What should a workday be like?</h2>
-    <fieldset>
-      <legend>The centre of the day</legend>
-      ${radioChoices(data.focuses, 'focus', true)}
-    </fieldset>
-    <fieldset>
-      <legend>Who is around</legend>
-      ${radioChoices(data.settings, 'setting', false)}
-    </fieldset>
-    <fieldset>
-      <legend>How defined the work is</legend>
-      ${radioChoices(data.paces, 'pace', false)}
-    </fieldset>
+    <h2>Which subjects or courses were part of that?</h2>
+    <p>Tick the ones you had. Type the rest if the list does not name them.</p>
+    <div class="choices grid">
+      ${checkChoices(subjects, 'subjects')}
+    </div>
+    <label class="stack" for="subjects-other">Subjects or courses to add in your own words</label>
+    <textarea id="subjects-other" name="subjectsOther" maxlength="300" rows="3" placeholder="Example: entrepreneurship elective, Tally, a Python module."></textarea>
+  </section>
+
+  <section data-step hidden>
+    <h2>What are you actually interested in?</h2>
+    <p>This can be different from the subjects you were taught.</p>
+    <div class="choices grid">
+      ${checkChoices(interests, 'interests')}
+    </div>
+    <label class="stack" for="interests-other">Interests to add in your own words</label>
+    <textarea id="interests-other" name="interestsOther" maxlength="300" rows="3" placeholder="Example: wildlife photography, hospital administration, game audio."></textarea>
   </section>
 
   <section data-step hidden>
     <h2>What can you already do?</h2>
-    <p>Only tick a line if you could use it at work this month. Hearing of it does not count.</p>
-    <label class="filter-label" for="skill-filter">Filter skills</label>
-    <input id="skill-filter" type="search" data-filter="skills" placeholder="Try SQL, writing, Excel…">
-    <p id="skill-count" class="fine">None ticked yet.</p>
-    ${data.skillGroups
+    <p>Only tick a line if you could use it this month. Type anything the list misses.</p>
+    ${asList(skillGroups)
       .map(
         (group) => `<fieldset data-group>
         <legend>${esc(group.name)}</legend>
@@ -441,18 +449,28 @@ function assess(data) {
       </fieldset>`
       )
       .join('')}
-    <label class="stack" for="note">Anything else we should keep with this result</label>
-    <textarea id="note" name="note" maxlength="500" rows="4" placeholder="A class you liked, a project, a constraint. Optional."></textarea>
+    <label class="stack" for="skills-other">A skill to add in your own words</label>
+    <textarea id="skills-other" name="skillsOther" maxlength="300" rows="3" placeholder="Example: I edit reels, I reconcile a cash book, I have taught a tuition batch."></textarea>
   </section>
 
   <section data-step hidden>
-    <h2>Check this, then score it.</h2>
-    <p>You can go back and change a step. Submitting runs every role in the catalogue through the same sheet.</p>
+    <h2>What do you want next?</h2>
+    <fieldset>
+      <legend>The next step</legend>
+      ${radioChoices(aims, 'aim', true)}
+    </fieldset>
+    <label class="stack" for="note">Anything else to keep with this result</label>
+    <textarea id="note" name="note" maxlength="500" rows="3" placeholder="Optional. A class you liked, a constraint, a city you need to stay in."></textarea>
+  </section>
+
+  <section data-step hidden>
+    <h2>Check this, then see careers.</h2>
+    <p>You can go back and change a step. Submitting asks for careers and course links.</p>
     <dl class="review" id="review"></dl>
   </section>
 
   <div class="assess-nav">
-    <button type="button" id="back" class="button secondary" hidden>Back</button>
+    <button type="button" id="back" class="button secondary" hidden>← Back</button>
     <button type="button" id="next" class="button">Continue</button>
   </div>
 </form>
@@ -463,151 +481,122 @@ function assess(data) {
 
 function results(data) {
   const assessment = data.assessment;
-  const featured = assessment.featured;
-  const answers = assessment.answers;
   const saveNote = data.saved
     ? `<p class="save-note">Saved on your account. Open it again from <a href="/saved">Saved</a>.</p>`
     : `<aside class="save-note">
-    <p>This result is tied to this browser session until you keep it. Create an account and it is filed under Saved, with the answers and the scores.</p>
+    <p>This result stays in this browser until you keep it. Create an account and it is filed under Saved.</p>
     <p class="actions">
       <a class="button" href="/register">Create an account</a>
       <a class="quiet" href="/login">I already have one</a>
     </p>
   </aside>`;
-  const note = answers.note ? `<div><dt>Your note</dt><dd>${esc(answers.note)}</dd></div>` : '';
-  const matched = featured.matched.length
-    ? `<p class="fine">You marked</p>
-        <ul class="pills">
-          ${featured.matched.map((skill) => `<li>${esc(skill.label)}</li>`).join('')}
-        </ul>`
-    : `<p>Nothing you marked is on this role’s list.</p>`;
-  const gaps = featured.gaps.length
-    ? `<p class="fine">Learn next, heavier first</p>
-        <ol class="plain">
-          ${featured.gaps
-            .map((skill) => `<li><strong>${esc(skill.label)}</strong> · ${esc(skill.weightWord)}</li>`)
-            .join('')}
-        </ol>`
-    : '';
-  const next = assessment.next.length
-    ? `<h2>The next matches</h2>
-  <div class="next-list">
-    ${assessment.next
-      .map((item, index) => {
-        const gap = item.gaps.length ? `<p class="fine">First gap: ${esc(item.gaps[0].label)}</p>` : '';
-        const freeWord = item.courses.free.length === 1 ? 'course' : 'courses';
-        return `<article class="match compact">
-        <p class="eyebrow">${esc(index + 2)} · ${esc(item.bandLabel)} · ${esc(item.score)}/100</p>
-        <h3><a href="/roles/${esc(item.role.id)}?from=${esc(assessment.id)}">${esc(item.role.title)}</a></h3>
-        <p class="fine">${esc(item.domain.name)}</p>
-        <p>${esc(item.reasons[0] || '')}</p>
-        <p>${esc(item.reasons[1] || '')}</p>
-        ${gap}
-        <p class="fine">${esc(item.courses.free.length)} free ${freeWord}, ${esc(item.courses.paid.length)} paid, on the role brief.</p>
-      </article>`;
-      })
-      .join('')}
-  </div>`
-    : '';
-
+  const sourceLine = assessment.source === 'gemini'
+    ? 'Gemini named these from your education, subjects, and interests. Course links from the catalogue are used when the career is already in the project. Other careers include links Gemini added.'
+    : 'These come from the catalogue, matched to what you said. Add GEMINI_API_KEY in the project .env if you want careers that are not in the catalogue, with course links added for them.';
+  const cards = (assessment.recommendations || [])
+    .map((item) => {
+      const free = (item.courses || []).filter((course) => !/^paid\b/i.test(course.cost));
+      const paid = (item.courses || []).filter((course) => /^paid\b/i.test(course.cost));
+      const courseList = (title, list) =>
+        list.length
+          ? `<h3>${title}</h3><ul class="resources">${list
+              .map(
+                (course) => `<li>
+            <a href="${esc(course.url)}" rel="noopener noreferrer">${esc(course.title)}</a>
+            <span class="meta">${esc(course.cost)}</span>
+            ${course.note ? `<p>${esc(course.note)}</p>` : ''}
+          </li>`
+              )
+              .join('')}</ul>`
+          : '';
+      const brief = item.roleId
+        ? `<p><a href="/roles/${esc(item.roleId)}?from=${esc(assessment.id)}">Open the role brief</a></p>`
+        : '';
+      return `<article class="match featured">
+      <header class="match-head">
+        <p class="eyebrow">${item.roleId ? 'In the catalogue' : 'Added for this result'}</p>
+        <h2>${esc(item.title)}</h2>
+      </header>
+      <p>${esc(item.why)}</p>
+      ${item.skills && item.skills.length ? `<p class="fine">Skills this uses: ${esc(item.skills.join(', '))}</p>` : ''}
+      ${courseList('Free courses', free)}
+      ${courseList('Paid courses', paid)}
+      ${brief}
+    </article>`;
+    })
+    .join('');
   return layout(
     data,
     `<p class="eyebrow">Result · ${esc(assessment.when)}</p>
-<h1>${esc(featured.role.title)}, at ${esc(featured.score)}/100.</h1>
-<p class="lede">${esc(answers.studyLine)} The lowest piece on the top match is ${esc(featured.weak.label)}.</p>
+<h1>${esc(assessment.headline)}</h1>
+<p class="lede">${esc(sourceLine)}</p>
 ${saveNote}
 <section class="recap">
   <h2>What you told us</h2>
   <dl class="mini">
-    <div><dt>Where</dt><dd>${esc(answers.stage)}</dd></div>
-    <div><dt>Study</dt><dd>${esc(answers.education)}</dd></div>
-    <div><dt>Domains</dt><dd>${esc(answers.domains.map((item) => item.name).join(', '))}</dd></div>
-    <div><dt>Workday</dt><dd>${esc(answers.focus)}</dd></div>
-    <div><dt>Setting</dt><dd>${esc(answers.setting)}</dd></div>
-    <div><dt>Pace</dt><dd>${esc(answers.pace)}</dd></div>
-    <div><dt>Skills</dt><dd>${esc(answers.skills.map((item) => item.label).join(', '))}</dd></div>
-    ${note}
+    ${(assessment.told || []).map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}
   </dl>
 </section>
-
-<article class="match featured">
+<div class="split result-pair">
+<div>
+<h2>Suggestions</h2>
+${cards}
+</div>
+${assessment.featured ? `<aside>
+<h2>Catalogue sheet</h2>
+<p class="fine">This is the recommendation logic for roles already in the project. It uses the same points for everyone. The suggestions can name a career this sheet does not have.</p>
+<article class="match">
   <header class="match-head">
-    <p class="eyebrow">${esc(featured.bandLabel)} · ${esc(featured.domain.name)}</p>
-    <h2>${esc(featured.role.title)}</h2>
-    <p class="score"><span>${esc(featured.score)}</span>/100</p>
-    <div class="meter" aria-hidden="true"><span style="width: ${Number(featured.score)}%"></span></div>
+    <p class="eyebrow">${esc(assessment.featured.bandLabel)} · ${esc(assessment.featured.domain.name)}</p>
+    <h2>${esc(assessment.featured.role.title)}</h2>
+    <p class="score"><span>${esc(assessment.featured.score)}</span>/100</p>
   </header>
-  <p>${esc(featured.role.summary)}</p>
-  <ol class="reasons">
-    ${featured.reasons.map((line) => `<li>${esc(line)}</li>`).join('')}
-  </ol>
-  <p class="fine">${esc(featured.rawLabel)} of ${esc(featured.maxRaw)} raw points, scaled to 100. <a href="/how">The sheet</a>.</p>
-
-  <div class="split">
-    <section>
-      <h3>Points</h3>
-      <table class="sheet">
-        <thead>
-          <tr><th>Piece</th><th>Points</th></tr>
-        </thead>
-        <tbody>
-          ${featured.sheet
-            .map(
-              (row) => `<tr>
-              <td>${esc(row.label)}${row.note ? `<small>${esc(row.note)}</small>` : ''}</td>
-              <td>${esc(row.got)} / ${esc(row.max)}</td>
-            </tr>`
-            )
-            .join('')}
-        </tbody>
-      </table>
-    </section>
-    <section>
-      <h3>Skills</h3>
-      ${matched}
-      ${gaps}
-    </section>
-  </div>
-
-  <h3>Courses for the skills this role needs</h3>
-  <p class="fine">Use these for the gaps above. Free and paid are separate, so you can see the cost before you open one.</p>
-  ${coursesBlock(featured.courses)}
-  <p><a href="/roles/${esc(featured.role.id)}?from=${esc(assessment.id)}">Open the role brief</a></p>
+  <table class="sheet">
+    <thead><tr><th>Piece</th><th>Points</th></tr></thead>
+    <tbody>
+      ${assessment.featured.sheet.map((row) => `<tr><td>${esc(row.label)}</td><td>${esc(row.got)} / ${esc(row.max)}</td></tr>`).join('')}
+    </tbody>
+  </table>
+  <p><a href="/roles/${esc(assessment.featured.role.id)}?from=${esc(assessment.id)}">Open this role brief</a></p>
 </article>
-${next}
-<h2>Every role, same sheet</h2>
-<p class="fine">The four above are the ones worth reading first. The rest stayed in the ranking so you can see what the sheet did not prefer.</p>
 <div class="table-wrap">
   <table class="rank">
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Role</th>
-        <th>Field</th>
-        <th>Score</th>
-        <th>Read</th>
-      </tr>
-    </thead>
+    <thead><tr><th>Rank</th><th>Role</th><th>Score</th></tr></thead>
     <tbody>
-      ${assessment.all
-        .map(
-          (item, index) => `<tr>
-          <td>${esc(index + 1)}</td>
-          <td>${esc(item.role.title)}</td>
-          <td>${esc(item.domain.name)}</td>
-          <td>${esc(item.score)} · ${esc(item.bandLabel)}</td>
-          <td><a href="/roles/${esc(item.role.id)}?from=${esc(assessment.id)}">Brief</a></td>
-        </tr>`
-        )
-        .join('')}
+      ${assessment.ranking.map((row) => `<tr><td>${esc(row.rank)}</td><td>${esc(row.title)}</td><td>${esc(row.score)}</td></tr>`).join('')}
     </tbody>
   </table>
 </div>
-
-<p class="actions"><a class="button secondary" href="/assess">Take it again</a></p>`
+</aside>` : '<div></div>'}
+</div>
+${assessment.messages && assessment.messages.length ? `<h2>The chat</h2>
+<div class="thread">${assessment.messages.map((message) => `<p class="bubble ${message.role === 'user' ? 'user' : 'guide'}">${esc(message.content)}</p>`).join('')}</div>` : ''}
+<p class="actions"><a class="button secondary" href="/assess">Take it again</a> <a class="quiet" href="/chat">Talk it through</a></p>`
   );
 }
 
+function chat(data) {
+  const thread = (data.messages || [])
+    .map(
+      (message) => `<p class="bubble ${message.role === 'user' ? 'user' : 'guide'}">${esc(message.content)}</p>`
+    )
+    .join('');
+  return layout(
+    data,
+    `<p class="eyebrow">Chat</p>
+<h1>Talk it through.</h1>
+<p class="lede thin">Say what you studied and what you want. The guide asks a follow-up when something is missing, then names careers and course links.</p>
+<div id="thread" class="thread">${thread}</div>
+<form id="chat-form" class="chat-form">
+  <label class="visually-hidden" for="chat-message">Your message</label>
+  <input id="chat-message" name="message" maxlength="1000" required placeholder="Class 12, computer science, I want to build websites">
+  <button class="button" type="submit">Send</button>
+</form>
+<p id="chat-error" class="form-error" hidden></p>
+<form method="post" action="/chat/reset"><button class="quiet" type="submit">Start again</button></form>
+<script src="/js/chat.js"></script>`
+  );
+}
 function register(data) {
   return layout(
     data,
@@ -645,7 +634,11 @@ function login(data) {
     <input id="password" name="password" type="password" autocomplete="current-password" required>
     <button class="button" type="submit">Sign in</button>
   </form>
-  <p class="fine">No account yet? <a href="/register">Sign Up</a></p>
+  <p class="fine">No account yet? <a href="/register">Create one</a>. There is no password reset. On your own machine, dropping the <code>guidancegenie</code> database in MongoDB wipes accounts and saved results. The demo account is created again the next time the server starts against an empty database.</p>
+  <aside class="example">
+    <p class="eyebrow">Demo account</p>
+    <p>On an empty database: <code>meera.kulkarni@example.com</code> / <code>campus-2026</code>. Two saved assessments are already there.</p>
+  </aside>
 </div>`
   );
 }
@@ -660,7 +653,7 @@ function saved(data) {
         <div>
           <p class="eyebrow">${esc(row.when)}</p>
           <h2><a href="/results/${esc(row.id)}">${esc(row.topTitle)}</a></h2>
-          <p>${esc(row.topScore)}/100 · ${esc(row.domains.join(', '))}</p>
+          <p>${row.via ? esc(row.via) + ' · ' : ''}${esc(row.topScore)}/100${row.domains.length ? ' · ' + esc(row.domains.join(', ')) : ''}</p>
         </div>
         <form method="post" action="/saved/${esc(row.id)}/delete" data-confirm="Delete this assessment? The answers and scores go with it.">
           <button type="submit" class="text-button">Delete</button>
@@ -715,6 +708,7 @@ module.exports = {
   how,
   assess,
   results,
+  chat,
   register,
   login,
   saved,

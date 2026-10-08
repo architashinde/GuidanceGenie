@@ -225,23 +225,34 @@ app.get('/assess', (req, res) => {
   );
 });
 
+function guideFor(req) {
+  const guide = req.session.guide;
+  const first = guide && guide.messages && guide.messages[0] && guide.messages[0].content;
+  if (!guide || first !== agent.OPENING) req.session.guide = agent.start();
+  return req.session.guide;
+}
+
 app.get('/chat', (req, res) => {
-  if (!req.session.guide) req.session.guide = agent.start();
+  const guide = guideFor(req);
   html(res, 200,
     'chat',
     view(req, {
       page: 'chat',
       title: 'Talk it through · GuidanceGenie',
-      messages: req.session.guide.messages
+      messages: guide.messages
     })
   );
+});
+
+app.post('/chat/reset', (req, res) => {
+  req.session.guide = agent.start();
+  res.redirect('/chat');
 });
 
 app.post('/api/chat', asyncRoute(async (req, res) => {
   const text = typeof req.body.message === 'string' ? req.body.message.trim() : '';
   if (!text || text.length > 1000) return res.status(400).json({ error: 'Write a message, up to 1000 characters.' });
-  if (!req.session.guide) req.session.guide = agent.start();
-  const turn = await agent.turn(req.session.guide, text);
+  const turn = await agent.turn(guideFor(req), text);
   req.session.guide = turn.state;
   if (!turn.recommendations) return res.json({ reply: turn.reply });
 
@@ -260,7 +271,12 @@ app.post('/api/chat', asyncRoute(async (req, res) => {
     }
   });
   if (!userId) rememberAssessment(req, id);
-  res.json({ reply: turn.reply, assessmentId: id });
+  const url = `/results/${id}`;
+  res.json({
+    reply: `Your careers are ready. Open them here: ${url}`,
+    assessmentId: id,
+    url
+  });
 }));
 
 app.post('/api/assessments', asyncRoute(async (req, res) => {
