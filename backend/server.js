@@ -437,8 +437,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.use((req, res, next) => {
-  dbApi.connect(MONGO_URI).then(() => next()).catch(next);
+app.use((req, res) => {
+  html(res, 404, 'notFound', view(req, { title: 'Not found · GuidanceGenie' }));
 });
 
 app.use((error, req, res, next) => {
