@@ -27,6 +27,7 @@ if (!process.env.SESSION_SECRET) {
 }
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 
 function html(res, status, name, data) {
   res.status(status).type('html').send(pages[name](data));
@@ -48,6 +49,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
+      secure: process.env.VERCEL === '1',
       httpOnly: true,
       sameSite: 'lax',
       maxAge: 1000 * 60 * 60 * 24 * 14
@@ -435,8 +437,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.use((req, res) => {
-  html(res, 404,'notFound', view(req, { title: 'Not found · GuidanceGenie' }));
+app.use((req, res, next) => {
+  dbApi.connect(MONGO_URI).then(() => next()).catch(next);
 });
 
 app.use((error, req, res, next) => {
