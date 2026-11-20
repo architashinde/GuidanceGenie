@@ -1,136 +1,71 @@
 # GuidanceGenie
 
-GuidanceGenie is a career guidance app for students and early-career switchers. You answer a short questionnaire. The server scores every role in a fixed catalogue and shows the matches, the skills you already have, the skills you do not, and places to learn them. Create an account and the answers and scores stay there, so you can open them again later.
+Career guidance for students and early-career switchers. A questionnaire or a chat collects education, subjects, interests, and skills. The server ranks 26 roles across 23 tech and business domains and returns the matches, the skill gaps, and course links.
 
-There is no machine learning in this project. Personalisation is a scoring sheet in `backend/engine.js`. The rules are written out on the Scoring page in the app.
+**Live app:** [https://guidancegenie.vercel.app](https://guidancegenie.vercel.app)
 
-The catalogue covers 23 tech and business fields and 26 roles: software, web, mobile, data, security, cloud, DevOps, QA, design, machine learning as a *job*, IT support, product, analysis, marketing, finance, HR, consulting, sales, operations, entrepreneurship, content, and project coordination.
+The public site is the catalogue and the points sheet. Gemini is optional and is used only when `GEMINI_API_KEY` is set.
 
-## What you need installed, and when
+## What a reviewer can try
 
-Do these in order. Do not skip ahead.
+1. Open the live app and read any field under Catalogue.
+2. Finish the questionnaire, or use Chat and answer until it offers a result.
+3. On the result page, read the careers, the missing skills, the course links, and the points sheet.
+4. Create an account from that page. Sign in later and open the same result under Saved.
 
-### 1. Install Node.js 22 on your computer
-
-This happens once, outside the project folder.
-
-This app stores accounts in SQLite using Node's built-in `node:sqlite` module. That module exists in Node.js 22.5 and newer. Node 18 and Node 20 will not start the server.
-
-Install Node.js 22 LTS from [https://nodejs.org](https://nodejs.org). The installer includes npm.
-
-Check it in a terminal:
-
-```bash
-node -v
-npm -v
-```
-
-You want `v22.x`. Anything starting with `v18` or `v20` is too old for this repo.
-
-### 2. Install this project's libraries
-
-This happens inside the project folder, the one that contains `package.json`. Do it after Node is installed, and before the first run.
-
-```bash
-cd /path/to/GuidanceGenie
-npm install
-```
-
-`npm install` reads `package.json` and creates `node_modules` here. It installs:
-
-| Package | Why it is here |
-| --- | --- |
-| express | HTTP server and the routes |
-| ejs | HTML templates in `views/` |
-| bcryptjs | Password hashing for accounts |
-| express-session | Signed cookie that keeps you signed in |
-| dotenv | Reads a `.env` file if you create one |
-| nodemon | Dev only. Restarts the server when you edit files |
-
-Run `npm install` again only if `package.json` changes. You do not run it before every start.
-
-If you do not want the dev tool, use `npm install --omit=dev`. Then `npm start` still works. `npm run dev` will not.
-
-### 3. Optional: a `.env` file
-
-Skip this on your own laptop. The app runs without it.
-
-Create it only if you want a different port, or you are about to let other people reach the server. From the project root:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and set `SESSION_SECRET` to a long random string. The file stays on your machine. It is listed in `.gitignore`.
-
-### 4. Start the app
-
-From the project root, after `npm install`:
-
-```bash
-npm start
-```
-
-Open [http://127.0.0.1:4721](http://127.0.0.1:4721).
-
-While you are changing code, use this instead:
-
-```bash
-npm run dev
-```
-
-That uses nodemon, which was installed in step 2. It is not required to use the app.
-
-### 5. Run the checks
-
-From the project root, after `npm install`:
-
-```bash
-npm test
-```
-
-This checks the scoring sheet and the demo account seed. It does not need the server to be running.
-
-## Using it
-
-1. Read a field under Catalogue, or start the questionnaire.
-2. The questionnaire is six steps: where you are, up to three fields, the shape of a workday, skills you can already use, what you want from the next two years, then a review.
-3. Submit. The result page is the ranked roles, the points, the skill gaps, and learning links.
-4. Create an account from that page if you want to keep it. Signing in on the same browser attaches the result you just made.
-5. Saved assessments are listed under Saved. Open one to see the original answers and scores. Delete removes that row only.
-
-A fresh database includes a demo account so the saved list is not empty:
+A local database also gets a demo account on first connection, if that email is not already stored:
 
 - Email: `meera.kulkarni@example.com`
 - Password: `campus-2026`
 
-There is no password-reset email. If you forget a password on your own machine, stop the server and delete `data/guidancegenie.db`. The next start creates a new file and the demo account again. That also deletes every real account and saved assessment.
+## Features
 
-## Where the code lives
+- Catalogue of 23 domains (12 tech, 11 business) and 26 roles, each with skills and course links.
+- Seven-step questionnaire: education, stream, subjects, interests, skills, aim, and review. Lists and typed answers are both accepted.
+- Chat that keeps asking until education, stream, subjects, interests, skills, and aim are known. Someone already working is also asked for a current role and years.
+- Result page with suggested careers, skills the role uses, free course links, and the points sheet beside them.
+- Accounts with hashed passwords. A result can be saved and opened again. A guest result made in the same browser is attached at register or login.
+- Deployed on Vercel, with accounts, sessions, and assessments in MongoDB Atlas.
 
-```
-backend/server.js       routes, sign-in, static files
-backend/engine.js       the scoring sheet
-backend/catalog.js      domains, skills, roles, learning links
-backend/labels.js       questionnaire wording
-backend/db.js           SQLite schema, accounts, saved assessments
-backend/present.js      turns a saved row into the result page
-views/                  HTML templates
-public/css/site.css     layout
-public/js/assess.js     questionnaire steps
-data/guidancegenie.db   created on first start, not committed
-```
+## Tech stack
 
-Edit `backend/catalog.js` to add a role. Keep `domainId` and skill ids valid. Restart the server. Assessments already saved are not rewritten.
+| Layer | Choice |
+| --- | --- |
+| Server | Node.js, Express |
+| Language | JavaScript |
+| Database | MongoDB, via Mongoose |
+| Sessions | express-session, stored with connect-mongo |
+| Passwords | bcrypt |
+| Pages | Server-rendered HTML in `backend/pages.js` |
+| Client | Plain JavaScript for the questionnaire, the chat, and the header |
+| Optional model | Gemini REST API, only if `GEMINI_API_KEY` is set |
+| Deploy | Vercel |
 
-## Accounts
+## Recommendation logic
 
-Passwords are stored as bcrypt hashes. The session cookie is `httpOnly`. Guest results are visible to anyone with the link until an account claims them. After that, only that account can open the link.
+Ranking is a written scoring sheet in `backend/engine.js`, not a trained model. The same rules are on the How it ranks page.
 
-The earlier sketch of this project expected a MongoDB Atlas password before the server would do anything useful. This version uses a SQLite file instead, so save-and-revisit works on a laptop with no cloud database. You do not install MongoDB.
+The questionnaire and the chat collect a profile. `backend/recommend.js` maps that profile onto the sheet: interests, subjects, and stream choose up to three domains, education chooses the stage, and interests choose the kind of workday. Each role then receives points.
 
-## What this does not do
+| Piece | Points | How it is earned |
+| --- | --- | --- |
+| Domain | 40 | Full marks for the role's own field. 18 for a neighbouring field. |
+| Skills | 30 | Share of that role's skill list the person already marked. A core skill counts more. |
+| Workday | 10 | The inferred centre of the day matches the role. |
+| Setting | 6 | Small team, large organisation, independent, or client-facing. |
+| Pace | 6 | Full marks on a match. A mixed pace scores 3 against a sharper role. |
+| Stage | 5 | Full marks when the role is a reasonable next step. Otherwise 1. |
+| Education | 3 | The degree or diploma is a usual door into the role. |
 
-- It does not train or call a model. Machine learning is a career field in the catalogue, not a technique used by the app.
-- It does not send email, take payments, or submit job applications.
-- Salary lines are indicative ranges for India. They are not offers.
+Domain points do not stack, so the raw maximum is 100. The score shown is that total scaled to 100.
+
+| Score | Band |
+| --- | --- |
+| 70 and above | Strong match |
+| 50 to 69 | Plausible |
+| Below 50 | Stretch |
+
+A neighbouring field can rank above a field the person named when the skills fit it better. The result page shows the points, the skills already marked, and the first gaps.
+
+If `GEMINI_API_KEY` is set, Gemini may also name a career that is not in the catalogue and attach course links on known public sites. The catalogue sheet is still calculated and shown. With no key, every career comes from the catalogue. That is how the public deployment behaves.
+
